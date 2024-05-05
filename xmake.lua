@@ -6,6 +6,11 @@ if is_os("windows") then
     add_includedirs('D:\\Program Files (x86)\\TensorRT-10.0.0.6\\include')
 end
 
+if is_os("linux") then 
+    add_includedirs('/usr/local/cuda/include')
+    add_includedirs('/usr/include')
+end
+
 target("camera_wrapper")
     set_kind("static")
     set_languages("c17")

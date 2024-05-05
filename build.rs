@@ -12,15 +12,14 @@ fn main() {
     let target = env::var("TARGET").unwrap();
     if target.contains("windows") {
         println!("cargo:rustc-link-search=native=linuxSDK_V2.1.0.37/lib");
-        println!(r#"cargo:rustc-link-search=native=D:\Program Files (x86)\TensorRT-10.0.0.6\lib"#);
+        println!(r#"cargo:rustc-link-search=native=D:\Program Files (x86)\TensorRT-10.0.0.6\lib"#); // TENSOR_RT PATH
         println!(
-            r#"cargo:rustc-link-search=native=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.4\include"#
+            r#"cargo:rustc-link-search=native=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.4\include"# // CUDA PATH
         );
         println!("cargo:rustc-link-lib=static=MVCAMSDK_X64");
         println!("cargo:rustc-link-lib=dylib=nvinfer");
-        // println!("cargo:rustc-link-lib=dylib=");
     } else if target.contains("linux") {
-        println!("cargo:rustc-link-lib=static=MVSDK");
+        println!("cargo:rustc-link-lib=dylib=MVSDK");
         println!("cargo:rustc-link-lib=dylib=nvinfer");
     }
 

@@ -3,6 +3,7 @@ mod buffer;
 use anyhow::{anyhow, Result};
 use std::mem;
 
+pub use buffer::Buffer;
 mod trt_op_ffi {
     use std::ffi::c_char;
     extern "C" {

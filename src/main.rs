@@ -1,5 +1,6 @@
 mod cam_op;
 mod cam_thread;
+mod trt_thread;
 mod shared_buffer;
 mod trt_op;
 use std::sync::{
