@@ -2,7 +2,12 @@
 name = "intelligent_sight_rs"
 version = "0.1.0"
 edition = "2021"
-
+authors = ["Aya <shioriaya@foxmail.com>"]
+build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.79"
+ctrlc = "3.4.4"
+
+[build-dependencies]
