@@ -1,8 +1,8 @@
 /target
-/build
-/clibs
+build
+clibs
 /Camera
-/linuxSDK_V2.1.0.37
+linuxSDK_V2.1.0.37
 /TensorRT
 /bin
 .xmake

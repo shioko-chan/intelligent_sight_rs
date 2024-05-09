@@ -1,22 +1,20 @@
-workspace = { members = ["intelligent_sight_lib"] }
 [package]
-name = "intelligent_sight_rs"
+name = "intelligent_sight_lib"
 version = "0.1.0"
 edition = "2021"
 authors = ["Aya <shioriaya@foxmail.com>"]
-# build = "build.rs"
+build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0.79"
 ctrlc = "3.4.4"
-intelligent_sight_lib = { path = "intelligent_sight_lib" }
 
 [build-dependencies]
 
 [dev-dependencies]
-# criterion = "0.5.1"
+criterion = "0.5.1"
 
-# [[bench]]
-# name = "shared_buffer_bench"
-# harness = false
+[[bench]]
+name = "shared_buffer_bench"
+harness = false

@@ -4,7 +4,7 @@ use std::{
 };
 
 pub struct SharedBufferLock<'a, T> {
-    id: usize,
+    _id: usize,
     lock: MutexGuard<'a, T>,
 }
 
@@ -52,30 +52,30 @@ impl Clone for BufferInfo {
 impl Copy for BufferInfo {}
 
 impl<T> SharedBuffer<T> {
-    pub fn new(buffer_len: usize) -> Self
+    pub fn new(reader_writer_cnt: usize) -> Self
     where
         T: Default,
     {
-        let mut vec = Vec::with_capacity(buffer_len);
-        for _ in 0..buffer_len {
+        let mut vec = Vec::with_capacity(reader_writer_cnt);
+        for _ in 0..reader_writer_cnt {
             vec.push(Mutex::new(T::default()));
         }
         SharedBuffer {
-            info: Mutex::new(vec![BufferInfo::default(); buffer_len]),
+            info: Mutex::new(vec![BufferInfo::default(); reader_writer_cnt]),
             buffers: vec,
         }
     }
 
-    pub fn new_with_default(buffer_len: usize, default: T) -> Self
+    pub fn new_with_default(reader_writer_cnt: usize, default: T) -> Self
     where
         T: Clone,
     {
-        let mut vec = Vec::with_capacity(buffer_len);
-        for _ in 0..buffer_len {
+        let mut vec = Vec::with_capacity(reader_writer_cnt);
+        for _ in 0..reader_writer_cnt {
             vec.push(Mutex::new(default.clone()));
         }
         SharedBuffer {
-            info: Mutex::new(vec![BufferInfo::default(); buffer_len]),
+            info: Mutex::new(vec![BufferInfo::default(); reader_writer_cnt]),
             buffers: vec,
         }
     }
@@ -137,19 +137,19 @@ impl<T> SharedBuffer<T> {
     pub fn read(&self) -> SharedBufferLock<T> {
         let index = self.get_read_index();
         SharedBufferLock {
-            id: index,
+            _id: index,
             lock: self.get_buffer(index),
         }
     }
     pub fn read_finish(&self, lock: SharedBufferLock<T>) {
         drop(lock.lock);
         let mut info = self.get_buffer_info();
-        info[lock.id].occupied = false;
+        info[lock._id].occupied = false;
     }
     pub fn write(&self) -> SharedBufferLock<T> {
         let index = self.get_write_index();
         SharedBufferLock {
-            id: index,
+            _id: index,
             lock: self.get_buffer(index),
         }
     }
@@ -157,8 +157,8 @@ impl<T> SharedBuffer<T> {
         drop(lock.lock);
         let mut info = self.get_buffer_info();
         info.iter_mut().for_each(|x| x.lfu += 1);
-        info[lock.id].lfu = 0;
-        info[lock.id].occupied = false;
+        info[lock._id].lfu = 0;
+        info[lock._id].occupied = false;
     }
 }
 
@@ -168,7 +168,7 @@ mod tests {
     use std::sync::Arc;
     use std::thread;
     #[test]
-    fn test_spsc() {
+    fn test_shared_buffer_spsc() {
         let n = 1000000;
         let buffer = SharedBuffer::<usize>::new(10);
         let share_buffer1 = Arc::new(buffer);
@@ -192,7 +192,7 @@ mod tests {
         assert_eq!(n - 1, *buffer.read().lock);
     }
     #[test]
-    fn test_mpsc() {
+    fn test_shared_buffer_mpsc() {
         let n = 1000000;
         let buffer = SharedBuffer::<usize>::new(10);
         let share_buffer1 = Arc::new(buffer);

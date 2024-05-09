@@ -1,7 +1,15 @@
 add_rules("mode.release", "mode.debug")
 
+if is_mode("debug") then
+    set_optimize("none")
+else 
+    if is_mode("release") then 
+        set_optimize("fastest")
+    end
+end
+
 if is_os("windows") then
-    add_includedirs('linuxSDK_V2.1.0.37/include')
+    add_includedirs('linuxSDK_V2.1.0.37\\include')
     add_includedirs('C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.4\\include')
     add_includedirs('D:\\Program Files (x86)\\TensorRT-10.0.0.6\\include')
 end

@@ -57,7 +57,9 @@ pub fn initialize_camera(
             Err(anyhow::anyhow!(format!(
                 "Failed to initialize camera, err code: {} ({})",
                 err_code,
-                ERR_NAME.get(err_code as usize).expect("Invalid error code")
+                ERR_NAME
+                    .get(err_code as usize)
+                    .unwrap_or(&"err code unknown")
             )))
         }
     }
@@ -77,7 +79,9 @@ pub fn get_image(camera_index: u8, image: &mut Image, flip_flag: FlipFlag) -> Re
         err_code => Err(anyhow::anyhow!(format!(
             "Failed to get image, err code: {} ({})",
             err_code,
-            ERR_NAME.get(err_code as usize).expect("Invalid error code")
+            ERR_NAME
+                .get(err_code as usize)
+                .unwrap_or(&"err code unknown")
         ))),
     }
 }
@@ -89,7 +93,9 @@ pub fn uninitialize_camera() -> Result<()> {
         err_code => Err(anyhow::anyhow!(format!(
             "Failed to uninitialize camera, err code: {} ({})",
             err_code,
-            ERR_NAME.get(err_code as usize).expect("Invalid error code")
+            ERR_NAME
+                .get(err_code as usize)
+                .unwrap_or(&"err code unknown")
         ))),
     }
 }
