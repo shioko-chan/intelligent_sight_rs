@@ -1,4 +1,4 @@
-use crate::trt_op::{cuda_free, cuda_malloc};
+use crate::{cuda_free, cuda_malloc};
 use anyhow::{anyhow, Result};
 use std::ops::{Deref, DerefMut};
 pub struct CArray<T> {

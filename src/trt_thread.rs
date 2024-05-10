@@ -52,6 +52,7 @@ impl Processor for TrtThread {
         })
     }
 }
+
 impl TrtThread {
     pub fn new(input_buffer: Arc<SharedBuffer<Image>>, stop_sig: Arc<AtomicBool>) -> Result<Self> {
         create_engine("model.trt", 640, 640)?;

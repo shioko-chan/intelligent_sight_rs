@@ -18,7 +18,6 @@ fn main() {
         "cargo:rerun-if-changed={}",
         manifest_dir.join("xmake.lua").display()
     );
-
     println!(
         "cargo:rustc-link-search=native={}",
         manifest_dir.join("clibs").display()
@@ -38,7 +37,7 @@ fn main() {
         println!(
             r#"cargo:rustc-link-search=native=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.4\lib\x64\"# // CUDA PATH
         );
-        println!("cargo:rustc-link-lib=dylib=MVCAMSDK_X64");
+        println!("cargo:rustc-link-lib=static=MVCAMSDK_X64");
         println!("cargo:rustc-link-lib=static=nvinfer");
         println!("cargo:rustc-link-lib=static=cudart_static");
     } else if target.contains("linux") {

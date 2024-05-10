@@ -27,9 +27,15 @@ target("camera_wrapper")
 
 target("tensorrt_wrapper")
     set_kind("static")
-    set_languages("c++17")
+    set_languages("c++20")
     set_targetdir("$(projectdir)/clibs")
     add_files("src/trt_op/cxx_src/trt_operation.cpp")
+
+target("cuda_wrapper")
+    set_kind("static")
+    set_languages("c++20")
+    set_targetdir("$(projectdir)/clibs")
+    add_files("src/cuda_op/cxx_src/cuda_operation.cpp")
 
 -- target("camera_test")
 --     set_kind("binary")

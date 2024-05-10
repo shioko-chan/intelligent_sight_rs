@@ -1,0 +1,48 @@
+mod err_code;
+use crate::unified_item::CArray;
+use anyhow::{anyhow, Result};
+use err_code::CUDA_ERR_NAME;
+use std::mem;
+
+mod cuda_op_ffi {
+    extern "C" {
+        pub fn cuda_malloc(size: u32, ptr: *mut *mut u8) -> u16;
+        pub fn cuda_free(ptr: *mut u8) -> u16;
+    }
+}
+
+pub fn cuda_malloc<T>(size: usize) -> Result<CArray<T>>
+where
+    T: Sized,
+{
+    let mut ptr = std::ptr::null_mut();
+    match unsafe {
+        cuda_op_ffi::cuda_malloc(
+            (size * mem::size_of::<T>() / mem::size_of::<u8>()) as u32,
+            &mut ptr as *mut *mut T as *mut *mut u8,
+        )
+    } {
+        0 => Ok(CArray::from_raw_parts(ptr, size)),
+        err => Err(anyhow!(
+            "Failed to allocate memory, code: {} ({})",
+            err,
+            CUDA_ERR_NAME
+                .get(err as usize)
+                .unwrap_or(&"err code unknown")
+        )),
+    }
+}
+
+pub fn cuda_free<T>(vec: &mut CArray<T>) -> Result<()> {
+    let ptr = unsafe { vec.as_mut_ptr() };
+    match unsafe { cuda_op_ffi::cuda_free(ptr as *mut u8) } {
+        0 => Ok(()),
+        err => Err(anyhow!(
+            "Failed to free memory, code: {} ({})",
+            err,
+            CUDA_ERR_NAME
+                .get(err as usize)
+                .unwrap_or(&"err code unknown")
+        )),
+    }
+}
