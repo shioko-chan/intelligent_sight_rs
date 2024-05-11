@@ -8,6 +8,13 @@ mod cuda_op_ffi {
     extern "C" {
         pub fn cuda_malloc(size: u32, ptr: *mut *mut u8) -> u16;
         pub fn cuda_free(ptr: *mut u8) -> u16;
+        pub fn convert_rgb888_3dtensor(
+            input_buffer: *const u8,
+            output_buffer: *mut f32,
+            width: u32,
+            height: u32,
+        ) -> u16;
+
     }
 }
 
@@ -46,3 +53,5 @@ pub fn cuda_free<T>(vec: &mut CArray<T>) -> Result<()> {
         )),
     }
 }
+
+pub fn convert_rgb888_3dtensor() {}

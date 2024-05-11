@@ -25,7 +25,7 @@ fn main() {
 
     println!("cargo:rustc-link-lib=static=camera_wrapper");
     println!("cargo:rustc-link-lib=static=tensorrt_wrapper");
-
+    println!("cargo:rustc-link-lib=static=cuda_wrapper");
     let target = env::var("TARGET").unwrap();
 
     if target.contains("windows") {
@@ -37,7 +37,7 @@ fn main() {
         println!(
             r#"cargo:rustc-link-search=native=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.4\lib\x64\"# // CUDA PATH
         );
-        println!("cargo:rustc-link-lib=static=MVCAMSDK_X64");
+        println!("cargo:rustc-link-lib=dylib=MVCAMSDK_X64");
         println!("cargo:rustc-link-lib=static=nvinfer");
         println!("cargo:rustc-link-lib=static=cudart_static");
     } else if target.contains("linux") {

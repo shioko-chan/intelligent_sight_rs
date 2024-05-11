@@ -18,6 +18,12 @@ extern "C"
 {
     uint16_t cuda_malloc(uint32_t size, uint8_t **buffer);
     uint16_t cuda_free(uint8_t *buffer);
+    uint16_t convert_rgb888_3dtensor(uint8_t *input_buffer, float *output_buffer, uint32_t width, uint32_t height);
 }
+
+enum CUDAErrCode
+{
+    CUDA_OK = 0,
+};
 
 #endif
