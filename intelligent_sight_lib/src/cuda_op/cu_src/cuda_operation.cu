@@ -26,7 +26,7 @@ uint16_t convert_rgb888_3dtensor(uint8_t *input_buffer, float *output_buffer, ui
     dim3 threads_per_block(16, 16);
     dim3 num_blocks((width + threads_per_block.x - 1) / threads_per_block.x, (height + threads_per_block.y - 1) / threads_per_block.y);
     rgbToTensor<<<num_blocks, threads_per_block>>>(input_buffer, output_buffer, width, height);
-    return CUDA_OK;
+    return (uint16_t)cudaSuccess;
 }
 
 uint16_t cuda_malloc(uint32_t size, uint8_t **buffer)

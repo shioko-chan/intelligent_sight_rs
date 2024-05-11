@@ -17,423 +17,423 @@ impl ErrCode {
 pub const CUDA_ERR_NAME: ErrCode = ErrCode::new(&[
     (
         0,
-        r##"cudaErrorInvalidValue:
+        r##"cudaSuccess:
          The API call returned with no errors. In the case of query calls, this also means that the operation being queried is complete (see ::cudaEventQuery"() and ::cudaStreamQuery"()).cudaSuccess"##,
     ),
     (
         1,
-        r##"cudaErrorMemoryAllocation:
+        r##"cudaErrorInvalidValue:
          This indicates that one or more of the parameters passed to the API call is not within an acceptable range of values."##,
     ),
     (
         2,
-        r##"cudaErrorInitializationError:
-         The API call failed because it was unable to allocate enough memory or other resources to perform the requested operation."##,
+        r##"cudaErrorMemoryAllocation:
+ `        The API call failed because it was unable to allocate enough memory or other resources to perform the requested operation."##,
     ),
     (
         3,
-        r##"cudaErrorCudartUnloading:
-         The API call failed because the "CUDA" driver and runtime could not be initialized."##,
+        r##"cudaErrorInitializationError:
+`         The API call failed because the "CUDA" driver and runtime could not be initialized."##,
     ),
     (
         4,
-        r##"cudaErrorProfilerDisabled:
+        r##"cudaErrorCudartUnloading:`
          This indicates that a "CUDA" Runtime API call cannot be executed because it is being called during process shut down, at a point in time after "CUDA" driver has been unloaded."##,
     ),
     (
         5,
-        r##"cudaErrorProfilerNotInitialized:
-         This indicates profiler is not initialized for this run. This can happen when the application is running with external profiling tools like visual profiler."##,
+        r##"cudaErrorProfilerDisabled:
+ `        This indicates profiler is not initialized for this run. This can happen when the application is running with external profiling tools like visual profiler."##,
     ),
     (
         6,
-        r##"cudaErrorProfilerAlreadyStarted:
-         !!DEPRECATED!! This error return is deprecated as of "CUDA" 5.0. It is no longer an error to attempt to enable/disable the profiling via ::cudaProfilerStart" or ::cudaProfilerStop" without initialization."##,
+        r##"cudaErrorProfilerNotInitialized:
+ `        !!DEPRECATED!! This error return is deprecated as of "CUDA" 5.0. It is no longer an error to attempt to enable/disable the profiling via ::cudaProfilerStart" or ::cudaProfilerStop" without initialization."##,
     ),
     (
         7,
-        r##"cudaErrorProfilerAlreadyStopped:
-         !!DEPRECATED!! This error return is deprecated as of "CUDA" 5.0. It is no longer an error to call cudaProfilerStart"() when profiling is already enabled."##,
+        r##"cudaErrorProfilerAlreadyStarted:
+ `        !!DEPRECATED!! This error return is deprecated as of "CUDA" 5.0. It is no longer an error to call cudaProfilerStart"() when profiling is already enabled."##,
     ),
     (
         8,
-        r##"cudaErrorInvalidConfiguration:
-         !!DEPRECATED!! This error return is deprecated as of "CUDA" 5.0. It is no longer an error to call cudaProfilerStop"() when profiling is already disabled."##,
+        r##"cudaErrorProfilerAlreadyStopped:
+ `        !!DEPRECATED!! This error return is deprecated as of "CUDA" 5.0. It is no longer an error to call cudaProfilerStop"() when profiling is already disabled."##,
     ),
     (
         9,
-        r##"cudaErrorInvalidPitchValue:
-         This indicates that a kernel launch is requesting resources that can never be satisfied by the current device. Requesting more shared memory per block than the device supports will trigger this error, as will requesting too many threads or blocks. See ::cudaDeviceProp" for more device limitations."##,
+        r##"cudaErrorInvalidConfiguration:
+ `        This indicates that a kernel launch is requesting resources that can never be satisfied by the current device. Requesting more shared memory per block than the device supports will trigger this error, as will requesting too many threads or blocks. See ::cudaDeviceProp" for more device limitations."##,
     ),
     (
         12,
-        r##"cudaErrorInvalidSymbol:
+        r##"cudaErrorInvalidPitchValue:`
          This indicates that one or more of the pitch-related parameters passed to the API call is not within the acceptable range for pitch."##,
     ),
     (
         13,
-        r##"cudaErrorInvalidHostPointer:
+        r##"cudaErrorInvalidSymbol:`
          This indicates that the symbol name/identifier passed to the API call is not a valid name or identifier."##,
     ),
     (
         16,
-        r##"cudaErrorInvalidDevicePointer:
-         This indicates that at least one host pointer passed to the API call is not a valid host pointer. !!DEPRECATED!! This error return is deprecated as of "CUDA" 10.1."##,
+        r##"cudaErrorInvalidHostPointer:
+ `        This indicates that at least one host pointer passed to the API call is not a valid host pointer. !!DEPRECATED!! This error return is deprecated as of "CUDA" 10.1."##,
     ),
     (
         17,
-        r##"cudaErrorInvalidTexture:
+        r##"cudaErrorInvalidDevicePointer:`
          This indicates that at least one device pointer passed to the API call is not a valid device pointer. !!DEPRECATED!! This error return is deprecated as of "CUDA" 10.1."##,
     ),
     (
         18,
-        r##"cudaErrorInvalidTextureBinding:
+        r##"cudaErrorInvalidTexture:`
          This indicates that the texture passed to the API call is not a valid texture."##,
     ),
     (
         19,
-        r##"cudaErrorInvalidChannelDescriptor:
-         This indicates that the texture binding is not valid. This occurs if you call ::cudaGetTextureAlignmentOffset"() with an unbound texture."##,
+        r##"cudaErrorInvalidTextureBinding:
+ `        This indicates that the texture binding is not valid. This occurs if you call ::cudaGetTextureAlignmentOffset"() with an unbound texture."##,
     ),
     (
         20,
-        r##"cudaErrorInvalidMemcpyDirection:
-         This indicates that the channel descriptor passed to the API call is not valid. This occurs if the format is not one of the formats specified by ::cudaChannelFormatKind", or if one of the dimensions is invalid."##,
+        r##"cudaErrorInvalidChannelDescriptor:
+ `        This indicates that the channel descriptor passed to the API call is not valid. This occurs if the format is not one of the formats specified by ::cudaChannelFormatKind", or if one of the dimensions is invalid."##,
     ),
     (
         21,
-        r##"cudaErrorAddressOfConstant:
-         This indicates that the direction of the memcpy passed to the API call is not one of the types specified by ::cudaMemcpyKind"."##,
+        r##"cudaErrorInvalidMemcpyDirection:
+`         This indicates that the direction of the memcpy passed to the API call is not one of the types specified by ::cudaMemcpyKind"."##,
     ),
     (
         22,
-        r##"cudaErrorTextureFetchFailed:
-         This indicated that the user has taken the address of a constant variable, which was forbidden up until the "CUDA" 3.1 release. !!DEPRECATED!! This error return is deprecated as of "CUDA" 3.1. Variables in constant memory may now have their address taken by the runtime via ::cudaGetSymbolAddress"()."##,
+        r##"cudaErrorAddressOfConstant:
+ `        This indicated that the user has taken the address of a constant variable, which was forbidden up until the "CUDA" 3.1 release. !!DEPRECATED!! This error return is deprecated as of "CUDA" 3.1. Variables in constant memory may now have their address taken by the runtime via ::cudaGetSymbolAddress"()."##,
     ),
     (
         23,
-        r##"cudaErrorTextureNotBound:
+        r##"cudaErrorTextureFetchFailed:`
          This indicated that a texture fetch was not able to be performed. This was previously used for device emulation of texture operations. !!DEPRECATED!! This error return is deprecated as of "CUDA" 3.1. Device emulation mode was removed with the "CUDA" 3.1 release."##,
     ),
     (
         24,
-        r##"cudaErrorSynchronizationError:
-         This indicated that a texture was not bound for access. This was previously used for device emulation of texture operations. !!DEPRECATED!! This error return is deprecated as of "CUDA" 3.1. Device emulation mode was removed with the "CUDA" 3.1 release."##,
+        r##"cudaErrorTextureNotBound:
+ `        This indicated that a texture was not bound for access. This was previously used for device emulation of texture operations. !!DEPRECATED!! This error return is deprecated as of "CUDA" 3.1. Device emulation mode was removed with the "CUDA" 3.1 release."##,
     ),
     (
         25,
-        r##"cudaErrorInvalidFilterSetting:
-         This indicated that a synchronization operation had failed. This was previously used for some device emulation functions. !!DEPRECATED!! This error return is deprecated as of "CUDA" 3.1. Device emulation mode was removed with the "CUDA" 3.1 release."##,
+        r##"cudaErrorSynchronizationError:
+ `        This indicated that a synchronization operation had failed. This was previously used for some device emulation functions. !!DEPRECATED!! This error return is deprecated as of "CUDA" 3.1. Device emulation mode was removed with the "CUDA" 3.1 release."##,
     ),
     (
         26,
-        r##"cudaErrorInvalidNormSetting:
+        r##"cudaErrorInvalidFilterSetting:`
          This indicates that a non-float texture was being accessed with linear filtering. This is not supported by "CUDA"."##,
     ),
     (
         27,
-        r##"cudaErrorMixedDeviceExecution:
-         This indicates that an attempt was made to read a non-float texture as a normalized float. This is not supported by "CUDA"."##,
+        r##"cudaErrorInvalidNormSetting:
+ `        This indicates that an attempt was made to read a non-float texture as a normalized float. This is not supported by "CUDA"."##,
     ),
     (
         28,
-        r##"cudaErrorNotYetImplemented:
+        r##"cudaErrorMixedDeviceExecution:`
          Mixing of device and device emulation code was not allowed. !!DEPRECATED!! This error return is deprecated as of "CUDA" 3.1. Device emulation mode was removed with the "CUDA" 3.1 release."##,
     ),
     (
         31,
-        r##"cudaErrorMemoryValueTooLarge:
-         This indicates that the API call is not yet implemented. Production releases of "CUDA" will never return this error. !!DEPRECATED!! This error return is deprecated as of "CUDA" 4.1."##,
+        r##"cudaErrorNotYetImplemented:
+ `        This indicates that the API call is not yet implemented. Production releases of "CUDA" will never return this error. !!DEPRECATED!! This error return is deprecated as of "CUDA" 4.1."##,
     ),
     (
         32,
-        r##"cudaErrorStubLibrary:
+        r##"cudaErrorMemoryValueTooLarge:`
          This indicated that an emulated device pointer exceeded the 32-bit address range. !!DEPRECATED!! This error return is deprecated as of "CUDA" 3.1. Device emulation mode was removed with the "CUDA" 3.1 release."##,
     ),
     (
         34,
-        r##"cudaErrorInsufficientDriver:
+        r##"cudaErrorStubLibrary:`
          This indicates that the "CUDA" driver that the application has loaded is a stub library. Applications that run with the stub rather than a real driver loaded will result in "CUDA" API returning this error."##,
     ),
     (
         35,
-        r##"cudaErrorCallRequiresNewerDriver:
-         This indicates that the installed NVIDIA "CUDA" driver is older than the "CUDA" runtime library. This is not a supported configuration. Users should install an updated NVIDIA display driver to allow the application to run."##,
+        r##"cudaErrorInsufficientDriver:
+ `        This indicates that the installed NVIDIA "CUDA" driver is older than the "CUDA" runtime library. This is not a supported configuration. Users should install an updated NVIDIA display driver to allow the application to run."##,
     ),
     (
         36,
-        r##"cudaErrorInvalidSurface:
+        r##"cudaErrorCallRequiresNewerDriver:`
          This indicates that the API call requires a newer "CUDA" driver than the one currently installed. Users should install an updated NVIDIA "CUDA" driver to allow the API call to succeed."##,
     ),
     (
         37,
-        r##"cudaErrorDuplicateVariableName:
-         This indicates that the surface passed to the API call is not a valid surface."##,
+        r##"cudaErrorInvalidSurface:
+ `        This indicates that the surface passed to the API call is not a valid surface."##,
     ),
     (
         43,
-        r##"cudaErrorDuplicateTextureName:
-         This indicates that multiple global or constant variables (across separate "CUDA" source files in the application) share the same string name."##,
+        r##"cudaErrorDuplicateVariableName:
+ `        This indicates that multiple global or constant variables (across separate "CUDA" source files in the application) share the same string name."##,
     ),
     (
         44,
-        r##"cudaErrorDuplicateSurfaceName:
-         This indicates that multiple textures (across separate "CUDA" source files in the application) share the same string name."##,
+        r##"cudaErrorDuplicateTextureName:
+ `        This indicates that multiple textures (across separate "CUDA" source files in the application) share the same string name."##,
     ),
     (
         45,
-        r##"cudaErrorDevicesUnavailable:
+        r##"cudaErrorDuplicateSurfaceName:`
          This indicates that multiple surfaces (across separate "CUDA" source files in the application) share the same string name."##,
     ),
     (
         46,
-        r##"cudaErrorIncompatibleDriverContext:
-         This indicates that all "CUDA" devices are busy or unavailable at the current time. Devices are often busy/unavailable due to use of ::cudaComputeModeProhibited", ::cudaComputeModeExclusiveProcess", or when long running "CUDA" kernels have filled up the GPU and are blocking new work from starting. They can also be unavailable due to memory constraints on a device that already has active "CUDA" work being performed."##,
+        r##"cudaErrorDevicesUnavailable:
+ `        This indicates that all "CUDA" devices are busy or unavailable at the current time. Devices are often busy/unavailable due to use of ::cudaComputeModeProhibited", ::cudaComputeModeExclusiveProcess", or when long running "CUDA" kernels have filled up the GPU and are blocking new work from starting. They can also be unavailable due to memory constraints on a device that already has active "CUDA" work being performed."##,
     ),
     (
         49,
-        r##"cudaErrorMissingConfiguration:
-         This indicates that the current context is not compatible with this the "CUDA" Runtime. This can only occur if you are using "CUDA" Runtime/Driver interoperability and have created an existing Driver context using the driver API. The Driver context may be incompatible either because the Driver context was created using an older version  of the API, because the Runtime API call expects a primary driver  context and the Driver context is not primary, or because the Driver  context has been destroyed. Please see \ref "CUDART"_DRIVER "Interactions  with the "CUDA" Driver API" for more information."##,
+        r##"cudaErrorIncompatibleDriverContext:
+ `        This indicates that the current context is not compatible with this the "CUDA" Runtime. This can only occur if you are using "CUDA" Runtime/Driver interoperability and have created an existing Driver context using the driver API. The Driver context may be incompatible either because the Driver context was created using an older version  of the API, because the Runtime API call expects a primary driver  context and the Driver context is not primary, or because the Driver  context has been destroyed. Please see \ref "CUDART"_DRIVER "Interactions  with the "CUDA" Driver API" for more information."##,
     ),
     (
         52,
-        r##"cudaErrorPriorLaunchFailure:
+        r##"cudaErrorMissingConfiguration:`
          The device function being invoked (usually via ::cudaLaunchKernel"()) was not previously configured via the ::cudaConfigureCall"() function."##,
     ),
     (
         53,
-        r##"cudaErrorLaunchMaxDepthExceeded:
-         This indicated that a previous kernel launch failed. This was previously used for device emulation of kernel launches. !!DEPRECATED!! This error return is deprecated as of "CUDA" 3.1. Device emulation mode was removed with the "CUDA" 3.1 release."##,
+        r##"cudaErrorPriorLaunchFailure:
+ `        This indicated that a previous kernel launch failed. This was previously used for device emulation of kernel launches. !!DEPRECATED!! This error return is deprecated as of "CUDA" 3.1. Device emulation mode was removed with the "CUDA" 3.1 release."##,
     ),
     (
         65,
-        r##"cudaErrorLaunchFileScopedTex:
-         This error indicates that a device runtime grid launch did not occur  because the depth of the child grid would exceed the maximum supported number of nested grid launches. "##,
+        r##"cudaErrorLaunchMaxDepthExceeded:
+`         This error indicates that a device runtime grid launch did not occur  because the depth of the child grid would exceed the maximum supported number of nested grid launches. "##,
     ),
     (
         66,
-        r##"cudaErrorLaunchFileScopedSurf:
-         This error indicates that a grid launch did not occur because the kernel  uses file-scoped textures which are unsupported by the device runtime.  Kernels launched via the device runtime only support textures created with  the Texture Object API's."##,
+        r##"cudaErrorLaunchFileScopedTex:
+ `        This error indicates that a grid launch did not occur because the kernel  uses file-scoped textures which are unsupported by the device runtime.  Kernels launched via the device runtime only support textures created with  the Texture Object API's."##,
     ),
     (
         67,
-        r##"cudaErrorSyncDepthExceeded:
+        r##"cudaErrorLaunchFileScopedSurf:`
          This error indicates that a grid launch did not occur because the kernel  uses file-scoped surfaces which are unsupported by the device runtime. Kernels launched via the device runtime only support surfaces created with the Surface Object API's."##,
     ),
     (
         68,
-        r##"cudaErrorLaunchPendingCountExceeded:
-         This error indicates that a call to ::cudaDeviceSynchronize" made from the device runtime failed because the call was made at grid depth greater than than either the default (2 levels of grids) or user specified device limit ::cudaLimitDevRuntimeSyncDepth". To be able to synchronize on launched grids at a greater depth successfully, the maximum nested depth at which ::cudaDeviceSynchronize" will be called must be specified with the ::cudaLimitDevRuntimeSyncDepth" limit to the ::cudaDeviceSetLimit" api before the host-side launch of a kernel using the device runtime. Keep in mind that additional levels of sync depth require the runtime to reserve large amounts of device memory that cannot be used for user allocations. Note that ::cudaDeviceSynchronize" made from device runtime is only supported on devices of compute capability < 9.0."##,
+        r##"cudaErrorSyncDepthExceeded:
+ `        This error indicates that a call to ::cudaDeviceSynchronize" made from the device runtime failed because the call was made at grid depth greater than than either the default (2 levels of grids) or user specified device limit ::cudaLimitDevRuntimeSyncDepth". To be able to synchronize on launched grids at a greater depth successfully, the maximum nested depth at which ::cudaDeviceSynchronize" will be called must be specified with the ::cudaLimitDevRuntimeSyncDepth" limit to the ::cudaDeviceSetLimit" api before the host-side launch of a kernel using the device runtime. Keep in mind that additional levels of sync depth require the runtime to reserve large amounts of device memory that cannot be used for user allocations. Note that ::cudaDeviceSynchronize" made from device runtime is only supported on devices of compute capability < 9.0."##,
     ),
     (
         69,
-        r##"cudaErrorInvalidDeviceFunction:
-         This error indicates that a device runtime grid launch failed because the launch would exceed the limit ::cudaLimitDevRuntimePendingLaunchCount". For this launch to proceed successfully, ::cudaDeviceSetLimit" must be called to set the ::cudaLimitDevRuntimePendingLaunchCount" to be higher  than the upper bound of outstanding launches that can be issued to the device runtime. Keep in mind that raising the limit of pending device runtime launches will require the runtime to reserve device memory that cannot be used for user allocations."##,
+        r##"cudaErrorLaunchPendingCountExceeded:
+ `        This error indicates that a device runtime grid launch failed because the launch would exceed the limit ::cudaLimitDevRuntimePendingLaunchCount". For this launch to proceed successfully, ::cudaDeviceSetLimit" must be called to set the ::cudaLimitDevRuntimePendingLaunchCount" to be higher  than the upper bound of outstanding launches that can be issued to the device runtime. Keep in mind that raising the limit of pending device runtime launches will require the runtime to reserve device memory that cannot be used for user allocations."##,
     ),
     (
         98,
-        r##"cudaErrorNoDevice:
+        r##"cudaErrorInvalidDeviceFunction:`
          The requested device function does not exist or is not compiled for the proper device architecture."##,
     ),
     (
         100,
-        r##"cudaErrorInvalidDevice:
+        r##"cudaErrorNoDevice:`
          This indicates that no "CUDA"-capable devices were detected by the installed "CUDA" driver."##,
     ),
     (
         101,
-        r##"cudaErrorDeviceNotLicensed:
+        r##"cudaErrorInvalidDevice:`
          This indicates that the device ordinal supplied by the user does not correspond to a valid "CUDA" device or that the action requested is invalid for the specified device."##,
     ),
     (
         102,
-        r##"cudaErrorSoftwareValidityNotEstablished:
-         This indicates that the device doesn't have a valid Grid License."##,
+        r##"cudaErrorDeviceNotLicensed:
+ `        This indicates that the device doesn't have a valid Grid License."##,
     ),
     (
         103,
-        r##"cudaErrorStartupFailure:
+        r##"cudaErrorSoftwareValidityNotEstablished:`
          By default, the "CUDA" runtime may perform a minimal set of self-tests, as well as "CUDA" driver tests, to establish the validity of both. Introduced in "CUDA" 11.2, this error return indicates that at least one of these tests has failed and the validity of either the runtime or the driver could not be established."##,
     ),
     (
         127,
-        r##"cudaErrorInvalidKernelImage:
-         This indicates an internal startup failure in the "CUDA" runtime."##,
+        r##"cudaErrorStartupFailure:
+`         This indicates an internal startup failure in the "CUDA" runtime."##,
     ),
     (
         200,
-        r##"cudaErrorDeviceUninitialized:
+        r##"cudaErrorInvalidKernelImage:`
          This indicates that the device kernel image is invalid."##,
     ),
     (
         201,
-        r##"cudaErrorMapBufferObjectFailed:
+        r##"cudaErrorDeviceUninitialized:`
          This most frequently indicates that there is no context bound to the current thread. This can also be returned if the context passed to an API call is not a valid handle (such as a context that has had ::cuCtxDestroy() invoked on it). This can also be returned if a user mixes different API versions (i.e. 3010 context with 3020 API calls). See ::cuCtxGetApiVersion() for more details."##,
     ),
     (
         205,
-        r##"cudaErrorUnmapBufferObjectFailed:
-         This indicates that the buffer object could not be mapped."##,
+        r##"cudaErrorMapBufferObjectFailed:
+ `        This indicates that the buffer object could not be mapped."##,
     ),
     (
         206,
-        r##"cudaErrorArrayIsMapped:
-         This indicates that the buffer object could not be unmapped."##,
+        r##"cudaErrorUnmapBufferObjectFailed:
+ `        This indicates that the buffer object could not be unmapped."##,
     ),
     (
         207,
-        r##"cudaErrorAlreadyMapped:
+        r##"cudaErrorArrayIsMapped:`
          This indicates that the specified array is currently mapped and thus cannot be destroyed."##,
     ),
     (
         208,
-        r##"cudaErrorNoKernelImageForDevice:
-         This indicates that the resource is already mapped."##,
+        r##"cudaErrorAlreadyMapped:
+ `        This indicates that the resource is already mapped."##,
     ),
     (
         209,
-        r##"cudaErrorAlreadyAcquired:
-         This indicates that there is no kernel image available that is suitable for the device. This can occur when a user specifies code generation options for a particular "CUDA" source file that do not include the corresponding device configuration."##,
+        r##"cudaErrorNoKernelImageForDevice:
+ `        This indicates that there is no kernel image available that is suitable for the device. This can occur when a user specifies code generation options for a particular "CUDA" source file that do not include the corresponding device configuration."##,
     ),
     (
         210,
-        r##"cudaErrorNotMapped:
+        r##"cudaErrorAlreadyAcquired:`
          This indicates that a resource has already been acquired."##,
     ),
     (
         211,
-        r##"cudaErrorNotMappedAsArray:
+        r##"cudaErrorNotMapped:`
          This indicates that a resource is not mapped."##,
     ),
     (
         212,
-        r##"cudaErrorNotMappedAsPointer:
-         This indicates that a mapped resource is not available for access as an array."##,
+        r##"cudaErrorNotMappedAsArray:
+ `        This indicates that a mapped resource is not available for access as an array."##,
     ),
     (
         213,
-        r##"cudaErrorECCUncorrectable:
-         This indicates that a mapped resource is not available for access as a pointer."##,
+        r##"cudaErrorNotMappedAsPointer:
+ `        This indicates that a mapped resource is not available for access as a pointer."##,
     ),
     (
         214,
-        r##"cudaErrorUnsupportedLimit:
+        r##"cudaErrorECCUncorrectable:`
          This indicates that an uncorrectable ECC error was detected during execution."##,
     ),
     (
         215,
-        r##"cudaErrorDeviceAlreadyInUse:
+        r##"cudaErrorUnsupportedLimit:`
          This indicates that the ::cudaLimit" passed to the API call is not supported by the active device."##,
     ),
     (
         216,
-        r##"cudaErrorPeerAccessUnsupported:
-         This indicates that a call tried to access an exclusive-thread device that  is already in use by a different thread."##,
+        r##"cudaErrorDeviceAlreadyInUse:
+ `        This indicates that a call tried to access an exclusive-thread device that  is already in use by a different thread."##,
     ),
     (
         217,
-        r##"cudaErrorInvalidPtx:
+        r##"cudaErrorPeerAccessUnsupported:`
          This error indicates that P2P access is not supported across the given devices."##,
     ),
     (
         218,
-        r##"cudaErrorInvalidGraphicsContext:
-         A PTX compilation failed. The runtime may fall back to compiling PTX if an application does not contain a suitable binary for the current device."##,
+        r##"cudaErrorInvalidPtx:
+ `        A PTX compilation failed. The runtime may fall back to compiling PTX if an application does not contain a suitable binary for the current device."##,
     ),
     (
         219,
-        r##"cudaErrorNvlinkUncorrectable:
-         This indicates an error with the OpenGL or DirectX context."##,
+        r##"cudaErrorInvalidGraphicsContext:
+ `        This indicates an error with the OpenGL or DirectX context."##,
     ),
     (
         220,
-        r##"cudaErrorJitCompilerNotFound:
+        r##"cudaErrorNvlinkUncorrectable:`
          This indicates that an uncorrectable NVLink error was detected during the execution."##,
     ),
     (
         221,
-        r##"cudaErrorUnsupportedPtxVersion:
-         This indicates that the PTX JIT compiler library was not found. The JIT Compiler library is used for PTX compilation. The runtime may fall back to compiling PTX if an application does not contain a suitable binary for the current device."##,
+        r##"cudaErrorJitCompilerNotFound:
+`         This indicates that the PTX JIT compiler library was not found. The JIT Compiler library is used for PTX compilation. The runtime may fall back to compiling PTX if an application does not contain a suitable binary for the current device."##,
     ),
     (
         222,
-        r##"cudaErrorJitCompilationDisabled:
-         This indicates that the provided PTX was compiled with an unsupported toolchain. The most common reason for this, is the PTX was generated by a compiler newer than what is supported by the "CUDA" driver and PTX JIT compiler."##,
+        r##"cudaErrorUnsupportedPtxVersion:
+`         This indicates that the provided PTX was compiled with an unsupported toolchain. The most common reason for this, is the PTX was generated by a compiler newer than what is supported by the "CUDA" driver and PTX JIT compiler."##,
     ),
     (
         223,
-        r##"cudaErrorUnsupportedExecAffinity:
-         This indicates that the JIT compilation was disabled. The JIT compilation compiles PTX. The runtime may fall back to compiling PTX if an application does not contain a suitable binary for the current device."##,
+        r##"cudaErrorJitCompilationDisabled:
+ `        This indicates that the JIT compilation was disabled. The JIT compilation compiles PTX. The runtime may fall back to compiling PTX if an application does not contain a suitable binary for the current device."##,
     ),
     (
         224,
-        r##"cudaErrorUnsupportedDevSideSync:
-         This indicates that the provided execution affinity is not supported by the device."##,
+        r##"cudaErrorUnsupportedExecAffinity:
+ `        This indicates that the provided execution affinity is not supported by the device."##,
     ),
     (
         225,
-        r##"cudaErrorInvalidSource:
-         This indicates that the code to be compiled by the PTX JIT contains unsupported call to cudaDeviceSynchronize"."##,
+        r##"cudaErrorUnsupportedDevSideSync:
+ `        This indicates that the code to be compiled by the PTX JIT contains unsupported call to cudaDeviceSynchronize"."##,
     ),
     (
         300,
-        r##"cudaErrorFileNotFound:
+        r##"cudaErrorInvalidSource:`
          This indicates that the device kernel source is invalid."##,
     ),
     (
         301,
-        r##"cudaErrorSharedObjectSymbolNotFound:
-         This indicates that the file specified was not found."##,
+        r##"cudaErrorFileNotFound:
+ `        This indicates that the file specified was not found."##,
     ),
     (
         302,
-        r##"cudaErrorSharedObjectInitFailed:
-         This indicates that a link to a shared object failed to resolve."##,
+        r##"cudaErrorSharedObjectSymbolNotFound:
+ `        This indicates that a link to a shared object failed to resolve."##,
     ),
     (
         303,
-        r##"cudaErrorOperatingSystem:
+        r##"cudaErrorSharedObjectInitFailed:`
          This indicates that initialization of a shared object failed."##,
     ),
     (
         304,
-        r##"cudaErrorInvalidResourceHandle:
-         This error indicates that an OS call failed."##,
+        r##"cudaErrorOperatingSystem:
+ `        This error indicates that an OS call failed."##,
     ),
     (
         400,
-        r##"cudaErrorIllegalState:
-         This indicates that a resource handle passed to the API call was not valid. Resource handles are opaque types like ::cudaStream"_t and ::cudaEvent"_t."##,
+        r##"cudaErrorInvalidResourceHandle:
+ `        This indicates that a resource handle passed to the API call was not valid. Resource handles are opaque types like ::cudaStream"_t and ::cudaEvent"_t."##,
     ),
     (
         401,
-        r##"cudaErrorLossyQuery:
+        r##"cudaErrorIllegalState:`
          This indicates that a resource required by the API call is not in a valid state to perform the requested operation."##,
     ),
     (
         402,
-        r##"cudaErrorSymbolNotFound:
-         This indicates an attempt was made to introspect an object in a way that would discard semantically important information. This is either due to the object using funtionality newer than the API version used to introspect it or omission of optional return arguments."##,
+        r##"cudaErrorLossyQuery:
+ `        This indicates an attempt was made to introspect an object in a way that would discard semantically important information. This is either due to the object using funtionality newer than the API version used to introspect it or omission of optional return arguments."##,
     ),
     (
         500,
-        r##"cudaErrorNotReady:
+        r##"cudaErrorSymbolNotFound:`
          This indicates that a named symbol was not found. Examples of symbols are global/constant variable names, driver function names, texture names, and surface names."##,
     ),
     (
         600,
-        r##"cudaErrorIllegalAddress:
+        r##"cudaErrorNotReady:
          This indicates that asynchronous operations issued previously have not completed yet. This result is not actually an error, but must be indicated differently than ::cudaSuccess" (which indicates completion). Calls that may return this value include ::cudaEventQuery"() and ::cudaStreamQuery"()."##,
     ),
     (
         700,
-        r##"cudaErrorInvalidConfiguration:
+        r##"cudaErrorIllegalAddress:
          The device encountered a load or store instruction on an invalid memory address. This leaves the process in an inconsistent state and any further "CUDA" work will return the same error. To continue using "CUDA", the process must be terminated and relaunched."##,
     ),
     (
         701,
         r##"cudaErrorLaunchOutOfResources:
-         This indicates that a launch did not occur because it did not have appropriate resources. Although this error is similar to ::", this error usually indicates that the user has attempted to pass too many arguments to the device kernel, or the kernel launch specifies too many threads for the kernel's register count."##,
+         This indicates that a launch did not occur because it did not have appropriate resources. Although this error is similar to ::cudaErrorInvalidConfiguration, this error usually indicates that the user has attempted to pass too many arguments to the device kernel, or the kernel launch specifies too many threads for the kernel's register count."##,
     ),
     (
         702,
@@ -669,9 +669,9 @@ mod tests {
     #[test]
     fn test_errcode() {
         assert_eq!(
-            &r##"cudaErrorProfilerAlreadyStopped:
-         !!DEPRECATED!! This error return is deprecated as of "CUDA" 5.0. It is no longer an error to call cudaProfilerStart"() when profiling is already enabled."##,
-            CUDA_ERR_NAME.get(7).unwrap()
+            &r##"cudaErrorTextureNotBound:
+ `        This indicated that a texture was not bound for access. This was previously used for device emulation of texture operations. !!DEPRECATED!! This error return is deprecated as of "CUDA" 3.1. Device emulation mode was removed with the "CUDA" 3.1 release."##,
+            CUDA_ERR_NAME.get(24).unwrap()
         );
         assert_eq!(None, CUDA_ERR_NAME.get(114514));
     }

@@ -34,15 +34,15 @@ impl Default for Image {
 
 #[derive(Clone)]
 pub struct Tensor {
-    pub size: u32,
+    pub size: Vec<usize>,
     pub data: UnifiedItem<f32>,
 }
 
 impl Tensor {
-    pub fn new(size: u32) -> Result<Self> {
+    pub fn new(size: Vec<usize>) -> Result<Self> {
         Ok(Tensor {
+            data: UnifiedItem::new(size.iter().fold(1, |sum, num| sum * num))?,
             size,
-            data: UnifiedItem::new(size as usize)?,
         })
     }
 }

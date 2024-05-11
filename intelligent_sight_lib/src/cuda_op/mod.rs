@@ -1,5 +1,5 @@
 mod err_code;
-use crate::unified_item::CArray;
+use crate::{unified_item::CArray, Image, Tensor};
 use anyhow::{anyhow, Result};
 use err_code::CUDA_ERR_NAME;
 use std::mem;
@@ -54,4 +54,22 @@ pub fn cuda_free<T>(vec: &mut CArray<T>) -> Result<()> {
     }
 }
 
-pub fn convert_rgb888_3dtensor() {}
+pub fn convert_rgb888_3dtensor(input_image: &Image, output_tensor: &mut Tensor) -> Result<()> {
+    match unsafe {
+        cuda_op_ffi::convert_rgb888_3dtensor(
+            input_image.data.as_ptr(),
+            output_tensor.data.as_mut_ptr(),
+            input_image.width,
+            input_image.height,
+        )
+    } {
+        0 => Ok(()),
+        err => Err(anyhow!(
+            "Failed to convert rgb888 to 3d tensor, code: {} ({})",
+            err,
+            CUDA_ERR_NAME
+                .get(err as usize)
+                .unwrap_or(&"err code unknown")
+        )),
+    }
+}
