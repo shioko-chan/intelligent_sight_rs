@@ -9,7 +9,7 @@ impl ErrCode {
             .find(|(c, _)| *c == code)
             .map(|(_, name)| name)
     }
-    const fn new(err_code: &'static [(usize, &'static str)]) -> Self {
+    pub const fn new(err_code: &'static [(usize, &'static str)]) -> Self {
         ErrCode { err_code }
     }
 }
@@ -676,3 +676,4 @@ mod tests {
         assert_eq!(None, CUDA_ERR_NAME.get(114514));
     }
 }
+//1280 1024

@@ -1,17 +1,30 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use intelligent_sight_lib::{convert_rgb888_3dtensor, Image, Tensor};
+use intelligent_sight_lib::{get_image, initialize_camera, uninitialize_camera, FlipFlag, Image};
 
-fn cuda_bench(c: &mut Criterion) {
-    c.bench_function("convert rgb888 3dtensor", |b| {
-        let image = Image::new(1280, 1024).unwrap();
-        let mut tensor = Tensor::new(vec![1280, 1024, 3]).unwrap();
+fn cam_bench(c: &mut Criterion) {
+    let mut buffer_width = vec![0u32; 1];
+    let mut buffer_height = vec![0u32; 1];
+
+    if let Err(err) = initialize_camera(1, &mut buffer_width, &mut buffer_height) {
+        panic!(
+            "CamThread: Failed to initialize camera with err: {}, retrying...",
+            err
+        );
+    }
+
+    c.bench_function("get frame", |b| {
+        let mut image = Image::new(buffer_width[0], buffer_height[0]).unwrap();
         b.iter(|| {
             criterion::black_box({
-                convert_rgb888_3dtensor(&image, &mut tensor).unwrap();
+                get_image(0, &mut image, FlipFlag::None).unwrap();
             })
         })
     });
+
+    if let Err(err) = uninitialize_camera() {
+        panic!("CamThread: Failed to uninitialize camera with err: {}", err);
+    }
 }
 
-criterion_group!(benches, cuda_bench);
+criterion_group!(benches, cam_bench);
 criterion_main!(benches);

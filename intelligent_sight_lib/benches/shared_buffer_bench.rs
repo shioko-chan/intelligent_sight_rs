@@ -8,14 +8,14 @@ fn read_write(b1: Arc<SharedBuffer<Image>>, b2: Arc<SharedBuffer<Image>>) {
         let h1 = thread::spawn(move || {
             for _ in 0..100 {
                 let mut write_buffer = b1.write();
-                write_buffer.data.iter_mut().for_each(|num| *num += 1);
+                write_buffer.iter_mut().for_each(|num| *num += 1);
                 b1.write_finish(write_buffer);
             }
         });
         let h2 = thread::spawn(move || {
             for _ in 0..100 {
                 let read_buffer = b2.read();
-                read_buffer.data.iter().for_each(|_| {});
+                read_buffer.iter().for_each(|_| {});
                 b2.read_finish(read_buffer);
             }
         });

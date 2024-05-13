@@ -64,7 +64,7 @@ pub fn get_image(camera_index: u8, image: &mut Image, flip_flag: FlipFlag) -> Re
     match unsafe {
         cam_op_ffi::get_image(
             camera_index,
-            image.data.as_mut_ptr(),
+            image.as_mut_ptr(),
             &mut image.width as *mut u32,
             &mut image.height as *mut u32,
             flip_flag as u8,
@@ -92,5 +92,33 @@ pub fn uninitialize_camera() -> Result<()> {
                 .get(err_code as usize)
                 .unwrap_or(&"err code unknown")
         ))),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_get_image() {
+        let mut buffer_width = vec![0u32; 1];
+        let mut buffer_height = vec![0u32; 1];
+
+        if let Err(err) = initialize_camera(1, &mut buffer_width, &mut buffer_height) {
+            panic!("initialize_camera failed err: {}", err);
+        }
+
+        let mut image = Image::new(buffer_width[0], buffer_height[0]).unwrap();
+
+        if let Err(err) = get_image(0, &mut image, FlipFlag::None) {
+            println!("err: {}", err);
+            panic!("get_image failed");
+        }
+
+        println!("height: {}, width: {}", image.height, image.width);
+
+        if let Err(err) = uninitialize_camera() {
+            panic!("uninitialize_camera failed err: {}", err);
+        }
     }
 }

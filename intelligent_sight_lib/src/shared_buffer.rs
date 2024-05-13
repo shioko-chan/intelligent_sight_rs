@@ -101,6 +101,7 @@ impl<T> SharedBuffer<T> {
             Err(poisoned) => poisoned.into_inner(),
         }
     }
+
     #[inline]
     fn get_read_index(&self) -> usize {
         let mut info = self.get_buffer_info();
@@ -114,6 +115,7 @@ impl<T> SharedBuffer<T> {
         info[index].occupied = true;
         index
     }
+
     #[inline]
     fn get_write_index(&self) -> usize {
         let mut info = self.get_buffer_info();
@@ -127,6 +129,7 @@ impl<T> SharedBuffer<T> {
         info[index].occupied = true;
         index
     }
+
     #[inline]
     fn get_buffer(&self, index: usize) -> MutexGuard<T> {
         match self.buffers[index].lock() {
@@ -134,6 +137,7 @@ impl<T> SharedBuffer<T> {
             Err(poisoned) => poisoned.into_inner(),
         }
     }
+
     pub fn read(&self) -> SharedBufferLock<T> {
         let index = self.get_read_index();
         SharedBufferLock {
@@ -141,11 +145,13 @@ impl<T> SharedBuffer<T> {
             lock: self.get_buffer(index),
         }
     }
+
     pub fn read_finish(&self, lock: SharedBufferLock<T>) {
         drop(lock.lock);
         let mut info = self.get_buffer_info();
         info[lock._id].occupied = false;
     }
+
     pub fn write(&self) -> SharedBufferLock<T> {
         let index = self.get_write_index();
         SharedBufferLock {
@@ -153,6 +159,7 @@ impl<T> SharedBuffer<T> {
             lock: self.get_buffer(index),
         }
     }
+
     pub fn write_finish(&self, lock: SharedBufferLock<T>) {
         drop(lock.lock);
         let mut info = self.get_buffer_info();

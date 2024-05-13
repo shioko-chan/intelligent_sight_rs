@@ -1,11 +1,12 @@
 use crate::unified_item::UnifiedItem;
 use anyhow::Result;
+use std::ops::{Deref, DerefMut};
 
 #[derive(Clone)]
 pub struct Image {
     pub width: u32,
     pub height: u32,
-    pub data: UnifiedItem<u8>,
+    data: UnifiedItem<u8>,
 }
 
 impl Image {
@@ -32,10 +33,35 @@ impl Default for Image {
     }
 }
 
+impl Deref for Image {
+    type Target = UnifiedItem<u8>;
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+
+impl DerefMut for Image {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data
+    }
+}
 #[derive(Clone)]
 pub struct Tensor {
-    pub size: Vec<usize>,
-    pub data: UnifiedItem<f32>,
+    size: Vec<usize>,
+    data: UnifiedItem<f32>,
+}
+
+impl Deref for Tensor {
+    type Target = UnifiedItem<f32>;
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+
+impl DerefMut for Tensor {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data
+    }
 }
 
 impl Tensor {
@@ -44,5 +70,9 @@ impl Tensor {
             data: UnifiedItem::new(size.iter().fold(1, |sum, num| sum * num))?,
             size,
         })
+    }
+
+    pub fn size(&self) -> &Vec<usize> {
+        &self.size
     }
 }
