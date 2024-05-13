@@ -60,6 +60,12 @@ uint16_t cuda_malloc(uint32_t size, uint8_t **buffer)
     return (uint16_t)cudaSuccess;
 }
 
+uint16_t cuda_malloc_host(uint32_t size, uint8_t **buffer)
+{
+    check_status(cudaMallocHost((void **)buffer, size));
+    return (uint16_t)cudaSuccess;
+}
+
 uint16_t cuda_malloc_managed(uint32_t size, uint8_t **buffer)
 {
     check_status(cudaMallocManaged((void **)buffer, size));
@@ -69,6 +75,12 @@ uint16_t cuda_malloc_managed(uint32_t size, uint8_t **buffer)
 uint16_t cuda_free(uint8_t *buffer)
 {
     check_status(cudaFree(buffer));
+    return (uint16_t)cudaSuccess;
+}
+
+uint16_t cuda_free_host(uint8_t *buffer)
+{
+    check_status(cudaFreeHost(buffer));
     return (uint16_t)cudaSuccess;
 }
 

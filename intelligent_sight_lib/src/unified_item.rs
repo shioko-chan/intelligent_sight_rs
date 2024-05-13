@@ -1,90 +1,284 @@
-use anyhow::Result;
-use std::ops::{Deref, DerefMut};
-
 #[cfg(target_os = "windows")]
-pub use unified_item::*;
+pub use unified_item_windows::*;
 
 #[cfg(target_os = "linux")]
-pub use unified_item_cuda::*;
+pub use unified_item_linux::*;
 
-pub struct UnifiedItem<T>(ManagedArray<T>);
+use anyhow::Result;
 
-impl<T> UnifiedItem<T> {
-    pub fn new(size: usize) -> Result<Self>
-    where
-        T: Default + Copy,
-    {
-        Ok(UnifiedItem(ManagedArray::new(size)?))
-    }
-}
-
-impl<T> Deref for UnifiedItem<T> {
-    type Target = ManagedArray<T>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T> DerefMut for UnifiedItem<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
-
-impl<T> Clone for UnifiedItem<T>
-where
-    T: Default + Copy,
-{
-    fn clone(&self) -> Self {
-        let mut item = UnifiedItem::new(self.0.len()).expect("Failed to allocate uniform memory");
-        item.iter_mut().zip(self.iter()).for_each(|(dst, src)| {
-            *dst = *src;
-        });
-        item
-    }
+trait UnifiedTrait<T> {
+    fn to_device(&self) -> Result<*mut T>;
+    fn to_host(&self) -> Result<*mut T>;
+    fn len(&self) -> usize;
 }
 
 #[cfg(target_os = "windows")]
-mod unified_item {
+mod unified_item_windows {
+    use super::UnifiedTrait;
+    use crate::{
+        cuda_free, cuda_malloc, cuda_malloc_host, cuda_op::transfer_device_to_host,
+        transfer_host_to_device,
+    };
     use anyhow::Result;
     use std::ops::{Deref, DerefMut};
 
-    pub struct ManagedArray<T>(Vec<T>);
+    pub struct UnifiedItem<T> {
+        device_array: Option<DeviceArray<T>>,
+        host_array: HostArray<T>,
+        size: usize,
+    }
 
-    unsafe impl<T> Send for ManagedArray<T> {}
+    impl<T> UnifiedItem<T> {
+        pub fn new(size: usize) -> Result<Self>
+        where
+            T: Default + Copy,
+        {
+            Ok(UnifiedItem {
+                device_array: None,
+                host_array: HostArray::new(size)?,
+                size,
+            })
+        }
+    }
 
-    impl<T> Deref for ManagedArray<T> {
-        type Target = Vec<T>;
+    impl<T> Clone for UnifiedItem<T>
+    where
+        T: Default + Copy,
+    {
+        fn clone(&self) -> Self {
+            let mut item = UnifiedItem::new(self.len()).expect("Failed to allocate uniform memory");
+            item.iter_mut().zip(self.iter()).for_each(|(dst, src)| {
+                *dst = *src;
+            });
+            item
+        }
+    }
+
+    impl<T> UnifiedTrait<T> for UnifiedItem<T> {
+        fn to_device(&self) -> Result<*mut T> {
+            if self.device_array.is_none() {
+                self.device_array = Some(DeviceArray::new(self.len())?);
+            }
+            transfer_host_to_device(
+                self.host_array.as_ptr(),
+                self.device_array.unwrap().as_mut_ptr(),
+                self.len(),
+            )?;
+            Ok(self.device_array.unwrap().as_mut_ptr())
+        }
+
+        fn to_host(&self) -> Result<*mut T> {
+            if self.device_array.is_none() {
+                return Ok(self.host_array.as_mut_ptr());
+            }
+            transfer_device_to_host(
+                self.host_array.as_mut_ptr(),
+                self.device_array.as_ptr(),
+                self.len(),
+            )?;
+            Ok(self.host_array.as_mut_ptr())
+        }
+        fn len(&self) -> usize {
+            self.size
+        }
+    }
+
+    pub struct HostArray<T> {
+        size: usize,
+        data: *mut T,
+    }
+
+    unsafe impl<T> Send for HostArray<T> {}
+
+    impl<T> Deref for HostArray<T> {
+        type Target = *mut T;
+        fn deref(&self) -> &Self::Target {
+            &self.data
+        }
+    }
+
+    impl<T> DerefMut for HostArray<T> {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.data
+        }
+    }
+
+    impl<T> HostArray<T> {
+        pub fn new(size: usize) -> Result<Self>
+        where
+            T: Default + Copy,
+        {
+            Ok(HostArray {
+                data: cuda_malloc_host(size)?,
+                size,
+            })
+        }
+
+        // pub fn from_raw_parts(ptr: *mut T, size: usize) -> Self {
+        //     HostArray(unsafe { Vec::from_raw_parts(ptr, size, size) })
+        // }
+        pub fn as_ptr(&self) -> *const T {
+            self.data
+        }
+
+        pub fn as_mut_ptr(&self) -> *mut T {
+            self.data
+        }
+    }
+
+    #[derive(Clone)]
+    pub struct DeviceArray<T> {
+        size: usize,
+        data: *mut T,
+    }
+
+    unsafe impl<T> Send for DeviceArray<T> {}
+
+    impl<T> Deref for DeviceArray<T> {
+        type Target = *mut T;
+        fn deref(&self) -> &Self::Target {
+            &self.data
+        }
+    }
+
+    impl<T> DerefMut for DeviceArray<T> {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.data
+        }
+    }
+
+    impl<T> Drop for DeviceArray<T> {
+        fn drop(&mut self) {
+            cuda_free(self).expect("Failed to free uniform memory");
+        }
+    }
+
+    impl<T> DeviceArray<T> {
+        pub fn new(size: usize) -> Result<Self> {
+            Ok(DeviceArray {
+                data: cuda_malloc(size)?,
+                size,
+            })
+        }
+
+        pub fn as_ptr(&self) -> *const T {
+            self.data
+        }
+
+        pub fn as_mut_ptr(&self) -> *mut T {
+            self.data
+        }
+    }
+}
+
+// #[cfg(target_os = "linux")]
+mod unified_item_linux {
+    use crate::{cuda_free, cuda_malloc_managed};
+    use anyhow::Result;
+    use std::ops::{Deref, DerefMut};
+
+    pub struct UnifiedItem<T>(ManagedArray<T>);
+
+    impl<T> UnifiedItem<T> {
+        pub fn new(size: usize) -> Result<Self>
+        where
+            T: Default + Copy,
+        {
+            Ok(UnifiedItem(ManagedArray::new(size)?))
+        }
+    }
+
+    impl<T> Deref for UnifiedItem<T> {
+        type Target = ManagedArray<T>;
+
         fn deref(&self) -> &Self::Target {
             &self.0
         }
     }
 
-    impl<T> DerefMut for ManagedArray<T> {
+    impl<T> DerefMut for UnifiedItem<T> {
         fn deref_mut(&mut self) -> &mut Self::Target {
             &mut self.0
         }
     }
 
-    impl<T> ManagedArray<T> {
-        pub fn new(size: usize) -> Result<Self>
-        where
-            T: Default + Copy,
-        {
-            Ok(ManagedArray(vec![T::default(); size]))
-        }
-        pub fn from_raw_parts(ptr: *mut T, size: usize) -> Self {
-            ManagedArray(unsafe { Vec::from_raw_parts(ptr, size, size) })
+    impl<T> Clone for UnifiedItem<T>
+    where
+        T: Default + Copy,
+    {
+        fn clone(&self) -> Self {
+            let mut item =
+                UnifiedItem::new(self.0.len()).expect("Failed to allocate uniform memory");
+            item.iter_mut().zip(self.iter()).for_each(|(dst, src)| {
+                *dst = *src;
+            });
+            item
         }
     }
-}
 
-#[cfg(target_os = "linux")]
-mod unified_item_cuda {
-    use crate::{cuda_free, cuda_malloc_managed};
+    pub struct ManagedArray<T> {
+        ptr: *mut T,
+        size: usize,
+    }
 
-    use anyhow::Result;
+    unsafe impl<T> Send for ManagedArray<T> {}
+
+    impl<T> Clone for ManagedArray<T> {
+        fn clone(&self) -> Self {
+            ManagedArray {
+                ptr: self.ptr,
+                size: self.size,
+            }
+        }
+    }
+
+    impl<T> Drop for ManagedArray<T> {
+        fn drop(&mut self) {
+            cuda_free(self).expect("Failed to free uniform memory");
+        }
+    }
+
+    impl<T> ManagedArray<T> {
+        pub fn new(size: usize) -> Result<Self> {
+            Ok(ManagedArray {
+                size,
+                ptr: cuda_malloc_managed(size)?,
+            })
+        }
+        pub fn from_raw_parts(ptr: *mut T, size: usize) -> Self {
+            ManagedArray { ptr, size }
+        }
+
+        pub fn len(&self) -> usize {
+            self.size
+        }
+
+        pub fn iter(&self) -> ManagedArrayIter<'_, T> {
+            ManagedArrayIter {
+                ptr: self.ptr as *const T,
+                index: 0,
+                size: self.size,
+                _marker: std::marker::PhantomData,
+            }
+        }
+
+        pub fn iter_mut(&mut self) -> ManagedArrayIterMut<'_, T> {
+            ManagedArrayIterMut {
+                ptr: self.ptr,
+                index: 0,
+                size: self.size,
+                _marker: std::marker::PhantomData,
+            }
+        }
+
+        pub fn as_ptr(&self) -> *const T {
+            self.ptr as *const T
+        }
+
+        pub fn as_mut_ptr(&mut self) -> *mut T {
+            self.ptr
+        }
+    }
 
     pub struct ManagedArrayIter<'a, T> {
         ptr: *const T,
@@ -123,67 +317,6 @@ mod unified_item_cuda {
             let ret = unsafe { self.ptr.add(self.index).as_mut() };
             self.index += 1;
             ret
-        }
-    }
-
-    pub struct ManagedArray<T> {
-        ptr: *mut T,
-        size: usize,
-    }
-
-    unsafe impl<T> Send for ManagedArray<T> {}
-
-    impl<T> Clone for ManagedArray<T> {
-        fn clone(&self) -> Self {
-            ManagedArray {
-                ptr: self.ptr,
-                size: self.size,
-            }
-        }
-    }
-
-    impl<T> Drop for ManagedArray<T> {
-        fn drop(&mut self) {
-            cuda_free(self).expect("Failed to free uniform memory");
-        }
-    }
-
-    impl<T> ManagedArray<T> {
-        pub fn new(size: usize) -> Result<Self> {
-            cuda_malloc_managed(size)
-        }
-        pub fn from_raw_parts(ptr: *mut T, size: usize) -> Self {
-            ManagedArray { ptr, size }
-        }
-
-        pub fn len(&self) -> usize {
-            self.size
-        }
-
-        pub fn iter(&self) -> ManagedArrayIter<'_, T> {
-            ManagedArrayIter {
-                ptr: self.ptr as *const T,
-                index: 0,
-                size: self.size,
-                _marker: std::marker::PhantomData,
-            }
-        }
-
-        pub fn iter_mut(&mut self) -> ManagedArrayIterMut<'_, T> {
-            ManagedArrayIterMut {
-                ptr: self.ptr,
-                index: 0,
-                size: self.size,
-                _marker: std::marker::PhantomData,
-            }
-        }
-
-        pub fn as_ptr(&self) -> *const T {
-            self.ptr as *const T
-        }
-
-        pub fn as_mut_ptr(&mut self) -> *mut T {
-            self.ptr
         }
     }
 }

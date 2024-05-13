@@ -1,6 +1,6 @@
 mod err_code;
 use crate::cuda_op::err_code::CUDA_ERR_NAME;
-use crate::unified_item::ManagedArray;
+use crate::UnifiedItem;
 use anyhow::{anyhow, Result};
 use err_code::TRT_ERR_NAME;
 
@@ -55,10 +55,7 @@ pub fn create_context() -> Result<()> {
     }
 }
 
-pub fn infer(
-    input_buffer: &ManagedArray<f32>,
-    output_buffer: &mut ManagedArray<f32>,
-) -> Result<()> {
+pub fn infer(input_buffer: &UnifiedItem<f32>, output_buffer: &mut UnifiedItem<f32>) -> Result<()> {
     match unsafe { trt_op_ffi::infer(input_buffer.as_ptr(), output_buffer.as_mut_ptr()) } {
         0 => Ok(()),
         err @ 1..=9999 => Err(anyhow!(

@@ -18,7 +18,9 @@ extern "C"
 {
     uint16_t cuda_malloc(uint32_t size, uint8_t **buffer);
     uint16_t cuda_malloc_managed(uint32_t size, uint8_t **buffer);
+    uint16_t cuda_malloc_host(uint32_t size, uint8_t **buffer);
     uint16_t cuda_free(uint8_t *buffer);
+    uint16_t cuda_free_host(uint8_t *buffer);
     uint16_t convert_rgb888_3dtensor(uint8_t *input_buffer, float *output_buffer, uint32_t width, uint32_t height);
     uint16_t init_cuda();
     uint16_t destroy_cuda();
