@@ -1,14 +1,16 @@
+use anyhow::Result;
+
 #[cfg(target_os = "windows")]
 pub use unified_item_windows::*;
 
 #[cfg(target_os = "linux")]
 pub use unified_item_linux::*;
 
-use anyhow::Result;
-
-trait UnifiedTrait<T> {
-    fn to_device(&self) -> Result<*mut T>;
-    fn to_host(&self) -> Result<*mut T>;
+pub trait UnifiedTrait<T> {
+    fn to_device(&mut self) -> Result<*mut T>;
+    fn to_host(&mut self) -> Result<*mut T>;
+    fn device(&mut self) -> Result<*mut T>;
+    fn host(&mut self) -> *mut T;
     fn len(&self) -> usize;
 }
 
@@ -16,7 +18,7 @@ trait UnifiedTrait<T> {
 mod unified_item_windows {
     use super::UnifiedTrait;
     use crate::{
-        cuda_free, cuda_malloc, cuda_malloc_host, cuda_op::transfer_device_to_host,
+        cuda_free, cuda_free_host, cuda_malloc, cuda_malloc_host, cuda_op::transfer_device_to_host,
         transfer_host_to_device,
     };
     use anyhow::Result;
@@ -41,43 +43,56 @@ mod unified_item_windows {
         }
     }
 
-    impl<T> Clone for UnifiedItem<T>
-    where
-        T: Default + Copy,
-    {
-        fn clone(&self) -> Self {
-            let mut item = UnifiedItem::new(self.len()).expect("Failed to allocate uniform memory");
-            item.iter_mut().zip(self.iter()).for_each(|(dst, src)| {
-                *dst = *src;
-            });
-            item
+    impl<T> Deref for UnifiedItem<T> {
+        type Target = HostArray<T>;
+        fn deref(&self) -> &Self::Target {
+            &self.host_array
+        }
+    }
+
+    impl<T> DerefMut for UnifiedItem<T> {
+        fn deref_mut(&mut self) -> &mut Self::Target {
+            &mut self.host_array
         }
     }
 
     impl<T> UnifiedTrait<T> for UnifiedItem<T> {
-        fn to_device(&self) -> Result<*mut T> {
+        fn to_device(&mut self) -> Result<*mut T> {
             if self.device_array.is_none() {
                 self.device_array = Some(DeviceArray::new(self.len())?);
             }
             transfer_host_to_device(
                 self.host_array.as_ptr(),
-                self.device_array.unwrap().as_mut_ptr(),
+                self.device_array.as_ref().unwrap().as_mut_ptr(),
                 self.len(),
             )?;
-            Ok(self.device_array.unwrap().as_mut_ptr())
+            Ok(self.device_array.as_ref().unwrap().as_mut_ptr())
         }
 
-        fn to_host(&self) -> Result<*mut T> {
+        fn to_host(&mut self) -> Result<*mut T> {
             if self.device_array.is_none() {
                 return Ok(self.host_array.as_mut_ptr());
             }
             transfer_device_to_host(
                 self.host_array.as_mut_ptr(),
-                self.device_array.as_ptr(),
+                self.device_array.as_ref().unwrap().as_ptr(),
                 self.len(),
             )?;
             Ok(self.host_array.as_mut_ptr())
         }
+
+        fn device(&mut self) -> Result<*mut T> {
+            if self.device_array.is_none() {
+                self.to_device()
+            } else {
+                Ok(self.device_array.as_ref().unwrap().as_mut_ptr())
+            }
+        }
+
+        fn host(&mut self) -> *mut T {
+            self.host_array.as_mut_ptr()
+        }
+
         fn len(&self) -> usize {
             self.size
         }
@@ -85,94 +100,135 @@ mod unified_item_windows {
 
     pub struct HostArray<T> {
         size: usize,
-        data: *mut T,
+        ptr: *mut T,
+    }
+
+    impl<T> Drop for HostArray<T> {
+        fn drop(&mut self) {
+            cuda_free_host(self.ptr).expect("Failed to free host memory");
+        }
     }
 
     unsafe impl<T> Send for HostArray<T> {}
 
-    impl<T> Deref for HostArray<T> {
-        type Target = *mut T;
-        fn deref(&self) -> &Self::Target {
-            &self.data
-        }
-    }
-
-    impl<T> DerefMut for HostArray<T> {
-        fn deref_mut(&mut self) -> &mut Self::Target {
-            &mut self.data
-        }
-    }
-
     impl<T> HostArray<T> {
-        pub fn new(size: usize) -> Result<Self>
-        where
-            T: Default + Copy,
-        {
+        pub fn new(size: usize) -> Result<Self> {
             Ok(HostArray {
-                data: cuda_malloc_host(size)?,
+                ptr: cuda_malloc_host(size)?,
                 size,
             })
         }
 
-        // pub fn from_raw_parts(ptr: *mut T, size: usize) -> Self {
-        //     HostArray(unsafe { Vec::from_raw_parts(ptr, size, size) })
-        // }
-        pub fn as_ptr(&self) -> *const T {
-            self.data
+        pub fn from_raw_parts(ptr: *mut T, size: usize) -> Self {
+            HostArray { ptr, size }
         }
 
-        pub fn as_mut_ptr(&self) -> *mut T {
-            self.data
+        pub fn len(&self) -> usize {
+            self.size
+        }
+
+        pub fn iter(&self) -> HostArrayIter<'_, T> {
+            HostArrayIter {
+                ptr: self.ptr as *const T,
+                index: 0,
+                size: self.size,
+                _marker: std::marker::PhantomData,
+            }
+        }
+
+        pub fn iter_mut(&mut self) -> HostArrayIterMut<'_, T> {
+            HostArrayIterMut {
+                ptr: self.ptr,
+                index: 0,
+                size: self.size,
+                _marker: std::marker::PhantomData,
+            }
+        }
+
+        fn as_ptr(&self) -> *const T {
+            self.ptr as *const T
+        }
+
+        fn as_mut_ptr(&mut self) -> *mut T {
+            self.ptr
         }
     }
 
-    #[derive(Clone)]
-    pub struct DeviceArray<T> {
+    pub struct HostArrayIter<'a, T> {
+        ptr: *const T,
+        index: usize,
         size: usize,
-        data: *mut T,
+        _marker: std::marker::PhantomData<&'a T>,
+    }
+
+    impl<'a, T> Iterator for HostArrayIter<'a, T> {
+        type Item = &'a T;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            if self.index >= self.size {
+                return None;
+            }
+            let ret = unsafe { self.ptr.add(self.index).as_ref() };
+            self.index += 1;
+            ret
+        }
+    }
+
+    pub struct HostArrayIterMut<'a, T> {
+        ptr: *mut T,
+        index: usize,
+        size: usize,
+        _marker: std::marker::PhantomData<&'a T>,
+    }
+
+    impl<'a, T> Iterator for HostArrayIterMut<'a, T> {
+        type Item = &'a mut T;
+
+        fn next(&mut self) -> Option<Self::Item> {
+            if self.index >= self.size {
+                return None;
+            }
+            let ret = unsafe { self.ptr.add(self.index).as_mut() };
+            self.index += 1;
+            ret
+        }
+    }
+
+    pub struct DeviceArray<T> {
+        #[allow(unused)]
+        size: usize,
+        ptr: *mut T,
     }
 
     unsafe impl<T> Send for DeviceArray<T> {}
 
-    impl<T> Deref for DeviceArray<T> {
-        type Target = *mut T;
-        fn deref(&self) -> &Self::Target {
-            &self.data
-        }
-    }
-
-    impl<T> DerefMut for DeviceArray<T> {
-        fn deref_mut(&mut self) -> &mut Self::Target {
-            &mut self.data
-        }
-    }
-
     impl<T> Drop for DeviceArray<T> {
         fn drop(&mut self) {
-            cuda_free(self).expect("Failed to free uniform memory");
+            cuda_free(self.ptr).expect("Failed to free device memory");
         }
     }
 
     impl<T> DeviceArray<T> {
         pub fn new(size: usize) -> Result<Self> {
             Ok(DeviceArray {
-                data: cuda_malloc(size)?,
+                ptr: cuda_malloc(size)?,
                 size,
             })
         }
 
-        pub fn as_ptr(&self) -> *const T {
-            self.data
+        fn as_ptr(&self) -> *const T {
+            self.ptr
         }
 
-        pub fn as_mut_ptr(&self) -> *mut T {
-            self.data
+        fn as_mut_ptr(&self) -> *mut T {
+            self.ptr
         }
     }
 }
 
-// #[cfg(target_os = "linux")]
+#[cfg(target_os = "linux")]
 mod unified_item_linux {
+    use super::UnifiedTrait;
     use crate::{cuda_free, cuda_malloc_managed};
     use anyhow::Result;
     use std::ops::{Deref, DerefMut};
@@ -190,7 +246,6 @@ mod unified_item_linux {
 
     impl<T> Deref for UnifiedItem<T> {
         type Target = ManagedArray<T>;
-
         fn deref(&self) -> &Self::Target {
             &self.0
         }
@@ -202,17 +257,25 @@ mod unified_item_linux {
         }
     }
 
-    impl<T> Clone for UnifiedItem<T>
-    where
-        T: Default + Copy,
-    {
-        fn clone(&self) -> Self {
-            let mut item =
-                UnifiedItem::new(self.0.len()).expect("Failed to allocate uniform memory");
-            item.iter_mut().zip(self.iter()).for_each(|(dst, src)| {
-                *dst = *src;
-            });
-            item
+    impl<T> UnifiedTrait<T> for UnifiedItem<T> {
+        fn to_device(&mut self) -> Result<*mut T> {
+            Ok(self.0.as_mut_ptr())
+        }
+
+        fn to_host(&mut self) -> Result<*mut T> {
+            Ok(self.0.as_mut_ptr())
+        }
+
+        fn device(&mut self) -> Result<*mut T> {
+            Ok(self.0.as_mut_ptr())
+        }
+
+        fn host(&mut self) -> *mut T {
+            self.0.as_mut_ptr()
+        }
+
+        fn len(&self) -> usize {
+            self.0.len()
         }
     }
 
@@ -234,7 +297,7 @@ mod unified_item_linux {
 
     impl<T> Drop for ManagedArray<T> {
         fn drop(&mut self) {
-            cuda_free(self).expect("Failed to free uniform memory");
+            cuda_free(self.ptr).expect("Failed to free uniform memory");
         }
     }
 
@@ -271,11 +334,11 @@ mod unified_item_linux {
             }
         }
 
-        pub fn as_ptr(&self) -> *const T {
+        fn as_ptr(&self) -> *const T {
             self.ptr as *const T
         }
 
-        pub fn as_mut_ptr(&mut self) -> *mut T {
+        fn as_mut_ptr(&mut self) -> *mut T {
             self.ptr
         }
     }
@@ -329,13 +392,5 @@ mod test {
         let mut item: UnifiedItem<f64> = UnifiedItem::new(10).unwrap();
         item.iter_mut().for_each(|num| *num = 1.0);
         item.iter().for_each(|num| assert_eq!(*num, 1.0));
-    }
-
-    #[test]
-    fn test_unified_item_clone() {
-        let mut item: UnifiedItem<f64> = UnifiedItem::new(10).unwrap();
-        item.iter_mut().for_each(|num| *num = 1.0);
-        let item2 = item.clone();
-        item2.iter().for_each(|num| assert_eq!(*num, 1.0));
     }
 }

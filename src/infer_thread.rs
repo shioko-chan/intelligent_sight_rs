@@ -4,8 +4,7 @@ use intelligent_sight_lib::{
     convert_rgb888_3dtensor, create_context, create_engine, infer, release_resources, Image,
     SharedBuffer, Tensor,
 };
-use log::Level::Debug;
-use log::{debug, info, log_enabled, warn};
+use log::{info, log_enabled, trace, warn};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -57,30 +56,34 @@ impl Processor for TrtThread {
                 "InferThread: middle buffer size: {:?}",
                 engine_input_buffer.size(),
             );
+
             while stop_sig.load(Ordering::Relaxed) == false {
-                let lock_input = input_buffer.read();
-                if let Err(err) = convert_rgb888_3dtensor(&lock_input, &mut engine_input_buffer) {
+                let mut lock_input = input_buffer.read();
+                if let Err(err) = convert_rgb888_3dtensor(&mut lock_input, &mut engine_input_buffer)
+                {
                     warn!("InferThread: convert image to tensor failed {}", err);
                 }
                 input_buffer.read_finish(lock_input);
 
-                if log_enabled!(Debug) {
-                    debug!("InferThread: finish convert_rgb888_3dtensor");
+                if log_enabled!(log::Level::Trace) {
+                    trace!("InferThread: finish convert_rgb888_3dtensor");
                 }
 
                 let mut lock_output = output_buffer.write();
-                if let Err(err) = infer(&engine_input_buffer, &mut lock_output) {
+                if let Err(err) = infer(&mut engine_input_buffer, &mut lock_output) {
                     warn!("InferThread: infer failed, error {}", err);
                 }
                 output_buffer.write_finish(lock_output);
 
-                cnt += 1;
-                if cnt == 10 {
-                    let end = std::time::Instant::now();
-                    let elapsed = end.duration_since(start);
-                    println!("InferThread: fps: {}", 10.0 / elapsed.as_secs_f32());
-                    start = end;
-                    cnt = 0;
+                if log_enabled!(log::Level::Trace) {
+                    cnt += 1;
+                    if cnt == 10 {
+                        let end = std::time::Instant::now();
+                        let elapsed = end.duration_since(start);
+                        trace!("InferThread: fps: {}", 10.0 / elapsed.as_secs_f32());
+                        start = end;
+                        cnt = 0;
+                    }
                 }
             }
         })
@@ -99,10 +102,7 @@ impl TrtThread {
         info!("InferThread: output buffer size: {:?}", vec![1, 31, 8400]);
         Ok(TrtThread {
             input_buffer,
-            output_buffer: Arc::new(SharedBuffer::new_with_default(
-                4,
-                Tensor::new(vec![1, 31, 10000])?,
-            )),
+            output_buffer: Arc::new(SharedBuffer::new(4, || Tensor::new(vec![1, 31, 10000]))?),
             stop_sig,
         })
     }

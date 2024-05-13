@@ -1,4 +1,4 @@
-use crate::Image;
+use crate::{Image, UnifiedTrait};
 use anyhow::Result;
 
 mod err_name;
@@ -64,7 +64,7 @@ pub fn get_image(camera_index: u8, image: &mut Image, flip_flag: FlipFlag) -> Re
     match unsafe {
         cam_op_ffi::get_image(
             camera_index,
-            image.as_mut_ptr(),
+            image.host(),
             &mut image.width as *mut u32,
             &mut image.height as *mut u32,
             flip_flag as u8,

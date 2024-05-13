@@ -2,7 +2,6 @@ use crate::unified_item::UnifiedItem;
 use anyhow::Result;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Clone)]
 pub struct Image {
     pub width: u32,
     pub height: u32,
@@ -45,7 +44,6 @@ impl DerefMut for Image {
         &mut self.data
     }
 }
-#[derive(Clone)]
 pub struct Tensor {
     size: Vec<usize>,
     data: UnifiedItem<f32>,

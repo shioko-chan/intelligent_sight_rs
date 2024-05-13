@@ -30,10 +30,10 @@ fn read_write_bench(c: &mut Criterion) {
         .clone()
         .into_iter()
         .map(|buffer_len| {
-            Arc::new(SharedBuffer::new_with_default(
-                buffer_len,
-                Image::new(1280, 1024).expect("fail to allocate uniform memory"),
-            ))
+            Arc::new(
+                SharedBuffer::new(buffer_len, || Image::new(1280, 1024))
+                    .expect("fail to create sharedbuffer"),
+            )
         })
         .collect();
 
@@ -51,10 +51,8 @@ fn read_write_bench(c: &mut Criterion) {
     c.bench_function("allocation bench", |b| {
         b.iter(|| {
             criterion::black_box({
-                SharedBuffer::new_with_default(
-                    4,
-                    Image::new(1280, 1024).expect("fail to allocate uniform memory"),
-                );
+                SharedBuffer::new(4, || Image::new(1280, 1024))
+                    .expect("fail to allocate sharedbuffer");
             });
         });
     });

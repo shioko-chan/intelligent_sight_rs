@@ -34,10 +34,9 @@ impl CamThread {
             buffer_width[0], buffer_height[0]
         );
         Ok(CamThread {
-            shared_buffer: Arc::new(SharedBuffer::new_with_default(
-                4,
-                Image::new(buffer_width[0], buffer_height[0])?,
-            )),
+            shared_buffer: Arc::new(SharedBuffer::new(4, || {
+                Image::new(buffer_width[0], buffer_height[0])
+            })?),
             stop_sig,
         })
     }

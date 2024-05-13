@@ -1,3 +1,4 @@
+use anyhow::Result;
 use std::{
     ops::{Deref, DerefMut},
     sync::{Mutex, MutexGuard},
@@ -52,46 +53,15 @@ impl Clone for BufferInfo {
 impl Copy for BufferInfo {}
 
 impl<T> SharedBuffer<T> {
-    pub fn new(reader_writer_cnt: usize) -> Self
-    where
-        T: Default,
-    {
+    pub fn new(reader_writer_cnt: usize, f: impl Fn() -> Result<T>) -> Result<Self> {
         let mut vec = Vec::with_capacity(reader_writer_cnt);
         for _ in 0..reader_writer_cnt {
-            vec.push(Mutex::new(T::default()));
+            vec.push(Mutex::new(f()?));
         }
-        SharedBuffer {
+        Ok(SharedBuffer {
             info: Mutex::new(vec![BufferInfo::default(); reader_writer_cnt]),
             buffers: vec,
-        }
-    }
-
-    pub fn new_with_default(reader_writer_cnt: usize, default: T) -> Self
-    where
-        T: Clone,
-    {
-        let mut vec = Vec::with_capacity(reader_writer_cnt);
-        for _ in 0..reader_writer_cnt {
-            vec.push(Mutex::new(default.clone()));
-        }
-        SharedBuffer {
-            info: Mutex::new(vec![BufferInfo::default(); reader_writer_cnt]),
-            buffers: vec,
-        }
-    }
-
-    pub fn new_with_vec(vec: &Vec<T>) -> Self
-    where
-        T: Clone,
-    {
-        let mut buffers = Vec::with_capacity(vec.len());
-        for item in vec {
-            buffers.push(Mutex::new(item.clone()));
-        }
-        SharedBuffer {
-            info: Mutex::new(vec![BufferInfo::default(); vec.len()]),
-            buffers,
-        }
+        })
     }
 
     #[inline]
@@ -177,7 +147,7 @@ mod tests {
     #[test]
     fn test_shared_buffer_spsc() {
         let n = 1000000;
-        let buffer = SharedBuffer::<usize>::new(10);
+        let buffer = SharedBuffer::new(10, || Ok(0usize)).unwrap();
         let share_buffer1 = Arc::new(buffer);
         let share_buffer2 = share_buffer1.clone();
         let buffer = share_buffer2.clone();
@@ -201,7 +171,7 @@ mod tests {
     #[test]
     fn test_shared_buffer_mpsc() {
         let n = 1000000;
-        let buffer = SharedBuffer::<usize>::new(10);
+        let buffer = SharedBuffer::new(10, || Ok(0usize)).unwrap();
         let share_buffer1 = Arc::new(buffer);
         let share_buffer2 = share_buffer1.clone();
         let share_buffer3 = share_buffer1.clone();
