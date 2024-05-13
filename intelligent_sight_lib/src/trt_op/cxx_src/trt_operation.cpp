@@ -43,7 +43,8 @@ uint16_t TensorrtInfer::create_engine(const char *engine_filename, uint32_t widt
 
     printf("TRT: Engine file size: %ld\n", fsize);
 
-    // check_status(cudaStreamCreate(&CUDA_STREAM));
+    check_status(cudaStreamCreate(&CUDA_STREAM));
+
     printf("TRT: Created CUDA stream\n");
     RUNTIME = nvinfer1::createInferRuntime(G_LOGGER);
     if (RUNTIME == nullptr)
@@ -84,33 +85,33 @@ uint16_t TensorrtInfer::create_context()
 }
 uint16_t TensorrtInfer::infer(float *input_buffer, float *output_buffer)
 {
-    // if (!CONTEXT->setTensorAddress("images", (void *)input_buffer))
-    // {
-    //     G_LOGGER.log(nvinfer1::ILogger::Severity::kERROR, "Failed to set input tensor address");
-    //     return TRT_INFER_FAIL;
-    // }
+    if (!CONTEXT->setTensorAddress("images", (void *)input_buffer))
+    {
+        G_LOGGER.log(nvinfer1::ILogger::Severity::kERROR, "Failed to set input tensor address");
+        return TRT_INFER_FAIL;
+    }
 
-    // if (!CONTEXT->setInputShape("images", nvinfer1::Dims4{1, 3, 640, 640}))
-    // {
-    //     G_LOGGER.log(nvinfer1::ILogger::Severity::kERROR, "Failed to set input shape");
-    //     return TRT_INFER_FAIL;
-    // }
+    if (!CONTEXT->setInputShape("images", nvinfer1::Dims4{1, 3, 640, 640}))
+    {
+        G_LOGGER.log(nvinfer1::ILogger::Severity::kERROR, "Failed to set input shape");
+        return TRT_INFER_FAIL;
+    }
 
-    // if (!CONTEXT->setTensorAddress("output0", (void *)output_buffer))
-    // {
-    //     G_LOGGER.log(nvinfer1::ILogger::Severity::kERROR, "Failed to set output tensor address");
-    //     return TRT_INFER_FAIL;
-    // }
+    if (!CONTEXT->setTensorAddress("output0", (void *)output_buffer))
+    {
+        G_LOGGER.log(nvinfer1::ILogger::Severity::kERROR, "Failed to set output tensor address");
+        return TRT_INFER_FAIL;
+    }
 
     // void *binding[2] = {input_buffer, output_buffer};
     // CONTEXT->executeV2(binding);
-    // if (!CONTEXT->enqueueV3(CUDA_STREAM))
-    // {
-    //     G_LOGGER.log(nvinfer1::ILogger::Severity::kERROR, "Failed to enqueue");
-    //     return TRT_INFER_FAIL;
-    // }
+    if (!CONTEXT->enqueueV3(CUDA_STREAM))
+    {
+        G_LOGGER.log(nvinfer1::ILogger::Severity::kERROR, "Failed to enqueue");
+        return TRT_INFER_FAIL;
+    }
 
-    // check_status(cudaStreamSynchronize(CUDA_STREAM));
+    check_status(cudaStreamSynchronize(CUDA_STREAM));
 
     return TRT_OK;
 }
@@ -118,7 +119,7 @@ uint16_t TensorrtInfer::infer(float *input_buffer, float *output_buffer)
 TensorrtInfer::~TensorrtInfer()
 {
     // Release resources
-    // cudaStreamDestroy(CUDA_STREAM);
+    cudaStreamDestroy(CUDA_STREAM);
     delete CONTEXT;
     delete M_ENGINE;
     delete RUNTIME;

@@ -102,7 +102,7 @@ impl TrtThread {
         info!("InferThread: output buffer size: {:?}", vec![1, 31, 8400]);
         Ok(TrtThread {
             input_buffer,
-            output_buffer: Arc::new(SharedBuffer::new(4, || Tensor::new(vec![1, 31, 10000]))?),
+            output_buffer: Arc::new(SharedBuffer::new(4, || Tensor::new(vec![1, 31, 8400]))?),
             stop_sig,
         })
     }

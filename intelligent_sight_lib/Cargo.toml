@@ -27,3 +27,7 @@ harness = false
 [[bench]]
 name = "cam_bench"
 harness = false
+
+[[bench]]
+name = "infer_bench"
+harness = false
