@@ -24,8 +24,8 @@ fn main() {
         manifest_dir.join("clibs").display()
     );
 
-    println!("cargo:rustc-link-lib=static=camera_wrapper");
-    println!("cargo:rustc-link-lib=static=tensorrt_wrapper");
+    println!("cargo:rustc-link-lib=dylib=camera_wrapper");
+    println!("cargo:rustc-link-lib=dylib=tensorrt_wrapper");
 
     let target = env::var("TARGET").unwrap();
 
@@ -42,9 +42,10 @@ fn main() {
         println!("cargo:rustc-link-lib=static=nvinfer");
         println!("cargo:rustc-link-lib=static=cudart_static");
     } else if target.contains("linux") {
+        println!("cargo:rustc-link-search=native=/usr/local/cuda/lib64");
         println!("cargo:rustc-link-lib=dylib=MVSDK");
-        println!("cargo:rustc-link-lib=static=nvinfer");
-        println!("cargo:rustc-link-lib=static=cudart")
+        println!("cargo:rustc-link-lib=dylib=nvinfer");
+        println!("cargo:rustc-link-lib=dylib=cudart");
     } else {
         panic!("unsupported platform")
     }

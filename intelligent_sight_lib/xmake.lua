@@ -20,14 +20,14 @@ if is_os("linux") then
 end
 
 target("camera_wrapper")
-    set_kind("static")
-    set_languages("c17")
+    set_kind("shared")
+    set_languages("c++20")
     set_targetdir("$(projectdir)/clibs")
     add_files("src/cam_op/c_src/camera_operation.c")
 
 target("tensorrt_wrapper")
-    set_kind("static")
-    set_languages("c++17")
+    set_kind("shared")
+    set_languages("c++20")
     set_targetdir("$(projectdir)/clibs")
     add_files("src/trt_op/cxx_src/trt_operation.cpp")
 
