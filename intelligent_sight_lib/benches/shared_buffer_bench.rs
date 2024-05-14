@@ -8,15 +8,13 @@ fn read_write(b1: Arc<SharedBuffer<Image>>, b2: Arc<SharedBuffer<Image>>) {
         let h1 = thread::spawn(move || {
             for _ in 0..100 {
                 let mut write_buffer = b1.write();
-                write_buffer.data.iter_mut().for_each(|num| *num += 1);
-                b1.write_finish(write_buffer);
+                write_buffer.iter_mut().for_each(|num| *num += 1);
             }
         });
         let h2 = thread::spawn(move || {
             for _ in 0..100 {
                 let read_buffer = b2.read();
-                read_buffer.data.iter().for_each(|_| {});
-                b2.read_finish(read_buffer);
+                read_buffer.iter().for_each(|_| {});
             }
         });
         h1.join().unwrap();
@@ -30,10 +28,10 @@ fn read_write_bench(c: &mut Criterion) {
         .clone()
         .into_iter()
         .map(|buffer_len| {
-            Arc::new(SharedBuffer::new_with_default(
-                buffer_len,
-                Image::new(1280, 1024).expect("fail to allocate uniform memory"),
-            ))
+            Arc::new(
+                SharedBuffer::new(buffer_len, || Image::new(1280, 1024))
+                    .expect("fail to create sharedbuffer"),
+            )
         })
         .collect();
 
@@ -51,10 +49,8 @@ fn read_write_bench(c: &mut Criterion) {
     c.bench_function("allocation bench", |b| {
         b.iter(|| {
             criterion::black_box({
-                SharedBuffer::new_with_default(
-                    4,
-                    Image::new(1280, 1024).expect("fail to allocate uniform memory"),
-                );
+                SharedBuffer::new(4, || Image::new(1280, 1024))
+                    .expect("fail to allocate sharedbuffer");
             });
         });
     });

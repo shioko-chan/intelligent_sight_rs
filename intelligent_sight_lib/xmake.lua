@@ -8,28 +8,39 @@ else
     end
 end
 
-if is_os("windows") then
-    add_includedirs('linuxSDK_V2.1.0.37\\include')
-    add_includedirs('C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.4\\include')
-    add_includedirs('D:\\Program Files (x86)\\TensorRT-10.0.0.6\\include')
-end
-
-if is_os("linux") then 
-    add_includedirs('/usr/local/cuda/include')
-    add_includedirs('/usr/include')
-end
-
 target("camera_wrapper")
     set_kind("shared")
-    set_languages("c++20")
+    set_languages("c17")
     set_targetdir("$(projectdir)/clibs")
-    add_files("src/cam_op/c_src/camera_operation.c")
+    add_files("src/cam_op/c_src/*.c")
+    if is_os("windows") then
+        add_includedirs("$(projectdir)\\linuxSDK_V2.1.0.37\\include")
+        add_linkdirs("$(projectdir)\\linuxSDK_V2.1.0.37\\lib")
+        add_links("MVCAMSDK_X64")
+        add_rules("utils.symbols.export_all")
+    end
+    if is_os("linux") then
+        add_links("MVSDK")
+    end
 
-target("tensorrt_wrapper")
+target("cuda_wrapper")
     set_kind("shared")
     set_languages("c++20")
     set_targetdir("$(projectdir)/clibs")
-    add_files("src/trt_op/cxx_src/trt_operation.cpp")
+    add_files("src/cuda_op/cu_src/*.cu")
+    add_files("src/trt_op/cxx_src/*.cpp")
+    add_cugencodes("native")
+    if is_os("windows") then
+        add_includedirs('C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.4\\include')
+        add_linkdirs('C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.4\\lib\\x64')
+        add_includedirs('D:\\Program Files (x86)\\TensorRT-10.0.0.6\\include')
+        add_linkdirs("D:\\Program Files (x86)\\TensorRT-10.0.0.6\\lib")
+        add_rules("utils.symbols.export_all")
+    end
+    if is_os("linux") then
+        add_includedirs('/usr/local/cuda/include')
+    end
+    add_links("cudart", "cuda", "nvinfer")
 
 -- target("camera_test")
 --     set_kind("binary")

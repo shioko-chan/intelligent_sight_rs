@@ -47,9 +47,6 @@ uint8_t initialize_camera(uint8_t wanted_cam_number, uint32_t *image_width, uint
         check_status_retry(CameraGetCapability(CAMERA_HANDLERS[i], &CAPABILITY_LIST[i]));
         printf("SDK: Finish CameraGetCapability\n");
 
-        image_height[i] = CAPABILITY_LIST[i].sResolutionRange.iHeightMax;
-        image_width[i] = CAPABILITY_LIST[i].sResolutionRange.iWidthMax;
-
         check_status_retry(CameraSetAeState(CAMERA_HANDLERS[i], FALSE));
         printf("SDK: Finish setting manual exposure CameraSetAeState\n");
 
@@ -72,6 +69,14 @@ uint8_t initialize_camera(uint8_t wanted_cam_number, uint32_t *image_width, uint
         printf("SDK: Finish setting output format RGB8\n");
 
         check_status_retry(CameraSetImageResolution(CAMERA_HANDLERS[i], &resolution));
+
+        tSdkImageResolution resolution_afterward = {0};
+        resolution_afterward.iIndex = 1;
+        CameraGetImageResolution(CAMERA_HANDLERS[i], &resolution_afterward);
+        // printf("%s\n", resolution_afterward.acDescription[resolution_afterward.iIndex]);
+
+        image_height[i] = resolution_afterward.iHeight;
+        image_width[i] = resolution_afterward.iWidth;
 
         check_status_retry(CameraPlay(CAMERA_HANDLERS[i]));
         printf("SDK: Camera is working now\n");
