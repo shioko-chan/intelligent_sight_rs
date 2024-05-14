@@ -3,7 +3,7 @@
 #include <cstdint>
 #include "cuda_op.h"
 
-cudaStream_t CUDASTREAM;
+cudaStream_t CUDASTREAM = nullptr;
 
 __global__ void rgbToTensor(unsigned char *input, float *output, uint32_t width, uint32_t height)
 {
