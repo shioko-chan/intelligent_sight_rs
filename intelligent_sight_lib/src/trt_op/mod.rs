@@ -27,14 +27,14 @@ fn exec_and_check(mut f: impl FnMut() -> Result<u16>) -> Result<()> {
     match f()? {
         0 => Ok(()),
         err @ 1..=9999 => Err(anyhow!(
-            "Failed to create engine, cuda error code: {} ({})",
+            "TRT: Failed, cuda error code: {} ({})",
             err,
             CUDA_ERR_NAME
                 .get(err as usize)
                 .unwrap_or(&"err code unknown")
         )),
         err => Err(anyhow!(
-            "Failed to create engine, error code: {} ({})",
+            "TRT: Failed, error code: {} ({})",
             err,
             TRT_ERR_NAME
                 .get(err as usize)
@@ -44,9 +44,9 @@ fn exec_and_check(mut f: impl FnMut() -> Result<u16>) -> Result<()> {
 }
 
 pub fn create_engine(
-    engine_filename: &'static str,
-    input_name: &'static str,
-    output_name: &'static str,
+    engine_filename: &str,
+    input_name: &str,
+    output_name: &str,
     width: u32,
     height: u32,
 ) -> Result<()> {

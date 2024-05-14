@@ -77,8 +77,11 @@ impl Processor for CamThread {
                     Ok(_) => {}
                     Err(err) => {
                         warn!("err: {}", err);
+                        break;
                     }
                 }
+                drop(lock);
+
                 cnt += 1;
                 if cnt == 10 {
                     let end = std::time::Instant::now();
@@ -89,8 +92,6 @@ impl Processor for CamThread {
                     start = end;
                     cnt = 0;
                 }
-                // println!("{} {}", lock.width, lock.height);
-                shared_buffer.write_finish(lock);
             }
         })
     }

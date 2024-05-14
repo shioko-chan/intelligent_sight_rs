@@ -4,7 +4,7 @@ use intelligent_sight_lib::{
     convert_rgb888_3dtensor, create_context, create_engine, infer, release_resources, set_input,
     set_output, Image, SharedBuffer, Tensor,
 };
-use log::{debug, info, log_enabled, warn};
+use log::{debug, info, log_enabled, trace, warn};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -59,8 +59,10 @@ impl Processor for TrtThread {
                 if let Err(err) = convert_rgb888_3dtensor(&mut lock_input, &mut engine_input_buffer)
                 {
                     warn!("InferThread: convert image to tensor failed {}", err);
+                    stop_sig.store(true, Ordering::Relaxed);
+                    break;
                 }
-                input_buffer.read_finish(lock_input);
+                drop(lock_input);
 
                 if log_enabled!(log::Level::Trace) {
                     trace!("InferThread: finish convert_rgb888_3dtensor");
@@ -68,16 +70,21 @@ impl Processor for TrtThread {
 
                 if let Err(err) = set_input(&mut engine_input_buffer) {
                     warn!("InferThread: set input buffer failed, error {}", err);
+                    stop_sig.store(true, Ordering::Relaxed);
+                    break;
                 }
 
                 let mut lock_output = output_buffer.write();
                 if let Err(err) = set_output(&mut lock_output) {
                     warn!("InferThread: set output buffer failed, error {}", err);
+                    stop_sig.store(true, Ordering::Relaxed);
+                    break;
                 }
                 if let Err(err) = infer() {
                     warn!("InferThread: infer failed, error {}", err);
+                    stop_sig.store(true, Ordering::Relaxed);
                 }
-                output_buffer.write_finish(lock_output);
+                drop(lock_output);
 
                 if log_enabled!(log::Level::Debug) {
                     cnt += 1;
@@ -97,12 +104,14 @@ impl Processor for TrtThread {
 impl TrtThread {
     pub fn new(input_buffer: Arc<SharedBuffer<Image>>, stop_sig: Arc<AtomicBool>) -> Result<Self> {
         create_engine("model.trt", "images", "output0", 640, 640)?;
+
         let read_lock = input_buffer.read();
         info!(
             "InferThread: input buffer size: width: {}, height: {}",
             read_lock.width, read_lock.height
         );
-        input_buffer.read_finish(read_lock);
+        drop(read_lock);
+
         info!("InferThread: output buffer size: {:?}", vec![1, 31, 8400]);
         Ok(TrtThread {
             input_buffer,

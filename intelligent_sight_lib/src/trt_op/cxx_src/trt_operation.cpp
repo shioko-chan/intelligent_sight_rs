@@ -1,5 +1,6 @@
 #include <cassert>
 #include <cfloat>
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -88,6 +89,7 @@ uint16_t TensorrtInfer::set_input(float *input_buffer)
         G_LOGGER.log(nvinfer1::ILogger::Severity::kERROR, "Failed to set input tensor address");
         return TRT_INFER_FAIL;
     }
+    return TRT_OK;
 }
 
 uint16_t TensorrtInfer::set_output(float *output_buffer)
@@ -97,6 +99,7 @@ uint16_t TensorrtInfer::set_output(float *output_buffer)
         G_LOGGER.log(nvinfer1::ILogger::Severity::kERROR, "Failed to set output tensor address");
         return TRT_INFER_FAIL;
     }
+    return TRT_OK;
 }
 
 uint16_t TensorrtInfer::infer()
@@ -114,7 +117,15 @@ uint16_t TensorrtInfer::infer()
     return TRT_OK;
 }
 
-TensorrtInfer::TensorrtInfer(const char *engine_filename, const char *input_name, const char *output_name, uint32_t width, uint32_t height) : ENGINE_NAME(engine_filename), INPUT_NAME(input_name), OUTPUT_NAME(output_name), WIDTH(width), HEIGHT(height) {}
+TensorrtInfer::TensorrtInfer(const char *engine_filename, const char *input_name, const char *output_name, uint32_t width, uint32_t height) : WIDTH(width), HEIGHT(height)
+{
+    ENGINE_NAME = new char[std::strlen(engine_filename) + 1];
+    std::strcpy(const_cast<char *>(ENGINE_NAME), engine_filename);
+    INPUT_NAME = new char[std::strlen(input_name) + 1];
+    std::strcpy(const_cast<char *>(INPUT_NAME), input_name);
+    OUTPUT_NAME = new char[std::strlen(output_name) + 1];
+    std::strcpy(const_cast<char *>(OUTPUT_NAME), output_name);
+}
 
 TensorrtInfer::~TensorrtInfer()
 {

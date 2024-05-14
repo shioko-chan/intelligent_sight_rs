@@ -7,6 +7,8 @@ use std::{
 pub struct SharedBufferLock<'a, T> {
     _id: usize,
     lock: MutexGuard<'a, T>,
+    is_read: bool,
+    shared_buffer: &'a SharedBuffer<T>,
 }
 
 impl<T> Deref for SharedBufferLock<'_, T> {
@@ -19,6 +21,16 @@ impl<T> Deref for SharedBufferLock<'_, T> {
 impl<T> DerefMut for SharedBufferLock<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut *self.lock
+    }
+}
+
+impl<T> Drop for SharedBufferLock<'_, T> {
+    fn drop(&mut self) {
+        if self.is_read {
+            self.shared_buffer.read_finish(self._id);
+        } else {
+            self.shared_buffer.write_finish(self._id);
+        }
     }
 }
 
@@ -112,30 +124,32 @@ impl<T> SharedBuffer<T> {
         let index = self.get_read_index();
         SharedBufferLock {
             _id: index,
+            is_read: true,
             lock: self.get_buffer(index),
+            shared_buffer: self,
         }
     }
 
-    pub fn read_finish(&self, lock: SharedBufferLock<T>) {
-        drop(lock.lock);
+    fn read_finish(&self, id: usize) {
         let mut info = self.get_buffer_info();
-        info[lock._id].occupied = false;
+        info[id].occupied = false;
     }
 
     pub fn write(&self) -> SharedBufferLock<T> {
         let index = self.get_write_index();
         SharedBufferLock {
             _id: index,
+            is_read: false,
             lock: self.get_buffer(index),
+            shared_buffer: self,
         }
     }
 
-    pub fn write_finish(&self, lock: SharedBufferLock<T>) {
-        drop(lock.lock);
+    fn write_finish(&self, id: usize) {
         let mut info = self.get_buffer_info();
         info.iter_mut().for_each(|x| x.lfu += 1);
-        info[lock._id].lfu = 0;
-        info[lock._id].occupied = false;
+        info[id].lfu = 0;
+        info[id].occupied = false;
     }
 }
 
@@ -153,15 +167,14 @@ mod tests {
         let buffer = share_buffer2.clone();
         let handle1 = thread::spawn(move || {
             for _ in 0..n {
+                #[allow(unused)]
                 let read_buffer = share_buffer1.read();
-                share_buffer1.read_finish(read_buffer);
             }
         });
         let handle2 = thread::spawn(move || {
             for i in 0..n {
                 let mut write_buffer = share_buffer2.write();
                 *write_buffer = i;
-                share_buffer2.write_finish(write_buffer);
             }
         });
         handle1.join().unwrap();
@@ -178,22 +191,20 @@ mod tests {
         let buffer = share_buffer1.clone();
         let handle1 = thread::spawn(move || {
             for _ in 0..n {
+                #[allow(unused)]
                 let read_buffer = share_buffer1.read();
-                share_buffer1.read_finish(read_buffer);
             }
         });
         let handle2 = thread::spawn(move || {
             for i in 0..n {
                 let mut write_buffer = share_buffer2.write();
                 *write_buffer = i;
-                share_buffer2.write_finish(write_buffer);
             }
         });
         let handle3 = thread::spawn(move || {
             for i in 1..n + 1 {
                 let mut write_buffer = share_buffer3.write();
                 *write_buffer = i;
-                share_buffer3.write_finish(write_buffer);
             }
         });
         handle1.join().unwrap();
@@ -201,6 +212,5 @@ mod tests {
         handle3.join().unwrap();
         let latest = buffer.read();
         assert!(n - 1 == *latest.lock || n == *latest.lock);
-        buffer.read_finish(latest)
     }
 }

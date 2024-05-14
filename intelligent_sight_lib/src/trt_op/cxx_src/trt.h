@@ -46,7 +46,7 @@ private:
     const char *ENGINE_NAME, *INPUT_NAME, *OUTPUT_NAME;
 
 public:
-    TensorrtInfer::TensorrtInfer(const char *engine_filename, const char *input_name, const char *output_name, uint32_t width, uint32_t height);
+    TensorrtInfer(const char *engine_filename, const char *input_name, const char *output_name, uint32_t width, uint32_t height);
     ~TensorrtInfer();
     uint16_t create_engine();
     uint16_t infer();
