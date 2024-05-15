@@ -83,6 +83,7 @@ impl Processor for TrtThread {
                 if let Err(err) = infer() {
                     warn!("InferThread: infer failed, error {}", err);
                     stop_sig.store(true, Ordering::Relaxed);
+                    break;
                 }
                 drop(lock_output);
 
