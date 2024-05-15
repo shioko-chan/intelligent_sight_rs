@@ -7,3 +7,4 @@ linuxSDK_V2.1.0.37
 /bin
 .xmake
 .vscode
+model.trt
