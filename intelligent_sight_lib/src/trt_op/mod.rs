@@ -85,3 +85,27 @@ pub fn set_input(input_buffer: &mut UnifiedItem<f32>) -> Result<()> {
 pub fn set_output(output_buffer: &mut UnifiedItem<f32>) -> Result<()> {
     exec_and_check(|| Ok(unsafe { trt_op_ffi::set_output(output_buffer.device()?) }))
 }
+#[cfg(test)]
+mod test {
+    use crate::Tensor;
+
+    use super::*;
+
+    #[test]
+    fn test_infer() {
+        let engine_filename = "../model.trt";
+        let input_name = "images";
+        let output_name = "output0";
+        let width = 640;
+        let height = 640;
+        create_engine(engine_filename, input_name, output_name, width, height).unwrap();
+        create_context().unwrap();
+
+        let mut input = Tensor::new(vec![1, 3, 640, 640]).unwrap();
+        let mut output = Tensor::new(vec![1, 31, 8400]).unwrap();
+        set_input(&mut input).unwrap();
+        set_output(&mut output).unwrap();
+        infer().unwrap();
+        release_resources().unwrap();
+    }
+}

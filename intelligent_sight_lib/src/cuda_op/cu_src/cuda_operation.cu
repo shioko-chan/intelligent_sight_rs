@@ -39,6 +39,7 @@ uint16_t convert_rgb888_3dtensor(uint8_t *input_buffer, float *output_buffer, ui
     dim3 num_blocks(40, 40);
     rgbToTensor<<<num_blocks, threads_per_block>>>(input_buffer, output_buffer, width, height);
     cudaDeviceSynchronize();
+
     return (uint16_t)cudaSuccess;
 }
 

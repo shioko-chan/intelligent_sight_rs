@@ -15,7 +15,7 @@ fn main() {
     );
     println!(
         "cargo:rerun-if-changed={}",
-        manifest_dir.join("cuda_op/cxx_src/*").display()
+        manifest_dir.join("cuda_op/cu_src/*").display()
     );
     println!(
         "cargo:rerun-if-changed={}",

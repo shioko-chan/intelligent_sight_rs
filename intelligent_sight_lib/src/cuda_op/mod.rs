@@ -148,6 +148,25 @@ pub fn transfer_device_to_host<T>(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_malloc() {
+        let ptr: *mut f64 = cuda_malloc(1024).expect("malloc error");
+        cuda_free(ptr).expect("free error");
+    }
+
+    #[test]
+    fn test_malloc_host() {
+        let ptr: *mut u128 = cuda_malloc_host(1024).expect("malloc error");
+        cuda_free_host(ptr).expect("free error");
+    }
+
+    #[test]
+    fn test_malloc_managed() {
+        let ptr: *mut f32 = cuda_malloc_managed(1024).expect("malloc error");
+        cuda_free(ptr).expect("free error");
+    }
+
     #[test]
     fn test_convert_img_tensor() {
         let mut image = Image::new(640, 480).unwrap();

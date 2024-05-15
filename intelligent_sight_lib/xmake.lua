@@ -31,14 +31,13 @@ target("cuda_wrapper")
     add_files("src/trt_op/cxx_src/*.cpp")
     add_cugencodes("native")
     if is_os("windows") then
-        add_includedirs('C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.4\\include')
-        add_linkdirs('C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.4\\lib\\x64')
-        add_includedirs('D:\\Program Files (x86)\\TensorRT-10.0.0.6\\include')
-        add_linkdirs("D:\\Program Files (x86)\\TensorRT-10.0.0.6\\lib")
+        add_includedirs('C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.4\\include', 'D:\\Program Files (x86)\\TensorRT-10.0.0.6\\include')
+        add_linkdirs("C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.4\\lib\\x64", "D:\\Program Files (x86)\\TensorRT-10.0.0.6\\lib")
         add_rules("utils.symbols.export_all")
     end
     if is_os("linux") then
         add_includedirs('/usr/local/cuda/include')
+        add_linkdirs('/usr/local/cuda/lib')
     end
     add_links("cudart", "cuda", "nvinfer")
 
