@@ -25,7 +25,7 @@ target("camera_wrapper")
 
 target("cuda_wrapper")
     set_kind("shared")
-    set_languages("c++20")
+    set_languages("c++17")
     set_targetdir("$(projectdir)/clibs")
     add_files("src/cuda_op/cu_src/*.cu")
     add_files("src/trt_op/cxx_src/*.cpp")

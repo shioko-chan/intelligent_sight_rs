@@ -30,8 +30,24 @@ fn main() {
 
     let target = env::var("TARGET").unwrap();
 
-    if !target.contains("windows") && !target.contains("linux") {
-        panic!("unsupported platform");
+    if target.contains("windows") {
+        println!(
+            r#"cargo:rustc-link-search=native={}"#,
+            manifest_dir.join(r#"linuxSDK_V2.1.0.37\lib"#).display()
+        );
+        println!(r#"cargo:rustc-link-search=native=D:\Program Files (x86)\TensorRT-10.0.0.6\lib\"#); // TENSOR_RT PATH
+        println!(
+            r#"cargo:rustc-link-search=native=C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v12.4\lib\x64\"# // CUDA PATH
+        );
+        println!("cargo:rustc-link-lib=dylib=MVCAMSDK_X64");
+        println!("cargo:rustc-link-lib=static=nvinfer");
+        println!("cargo:rustc-link-lib=static=cudart_static");
+    } else if target.contains("linux") {
+        println!("cargo:rustc-link-lib=dylib=MVSDK");
+        println!("cargo:rustc-link-lib=static=nvinfer");
+        println!("cargo:rustc-link-lib=static=cudart")
+    } else {
+        panic!("unsupported platform")
     }
 
     let result = Command::new("xmake")
