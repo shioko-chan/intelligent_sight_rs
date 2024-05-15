@@ -1,7 +1,7 @@
 /target
 build
 clibs
-/Camera
+Camera
 linuxSDK_V2.1.0.37
 /TensorRT
 /bin
