@@ -5,19 +5,46 @@
 
 cudaStream_t CUDASTREAM = nullptr;
 
-__global__ void rgbToTensor(unsigned char *input, float *output, uint32_t width, uint32_t height)
+// __global__ void rgbToTensor(unsigned char *input, float *output, uint32_t width, uint32_t height)
+// {
+//     int x = blockIdx.x * blockDim.x + threadIdx.x;
+//     int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+//     if (x < width && y < height + 160)
+//     {
+//         int idx_out = (y * width + x);
+//         int size_out = width * (height + 160);
+
+//         if (y < height + 80 && y >= 80)
+//         {
+//             int idx_in = 3 * ((y - 80) * width + x);
+
+//             output[idx_out] = input[idx_in] / 255.0f;                    // R
+//             output[idx_out + size_out] = input[idx_in + 1] / 255.0f;     // G
+//             output[idx_out + 2 * size_out] = input[idx_in + 2] / 255.0f; // B
+//         }
+//         else
+//         {
+//             output[idx_out] = 0.5f;                // R
+//             output[idx_out + size_out] = 0.5f;     // G
+//             output[idx_out + 2 * size_out] = 0.5f; // B
+//         }
+//     }
+// }
+
+__global__ void rgbToTensor(uint8_t *input, float *output)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if (x < width && y < height + 160)
+    if (x < 640 && y < 640)
     {
-        int idx_out = (y * width + x);
-        int size_out = width * (height + 160);
+        int idx_out = (y * 640 + x);
+        int size_out = 640 * 640;
 
-        if (y < height + 80 && y >= 80)
+        if (y < 560 && y >= 80)
         {
-            int idx_in = 3 * ((y - 80) * width + x);
+            int idx_in = 3 * ((y - 80) * 640 + x);
 
             output[idx_out] = input[idx_in] / 255.0f;                    // R
             output[idx_out + size_out] = input[idx_in + 1] / 255.0f;     // G
@@ -37,9 +64,10 @@ uint16_t convert_rgb888_3dtensor(uint8_t *input_buffer, float *output_buffer, ui
 {
     dim3 threads_per_block(16, 16);
     dim3 num_blocks(40, 40);
-    rgbToTensor<<<num_blocks, threads_per_block>>>(input_buffer, output_buffer, width, height);
-    cudaDeviceSynchronize();
-
+    // rgbToTensor<<<num_blocks, threads_per_block, 0, CUDASTREAM>>>(input_buffer, output_buffer);
+    // cudaStreamSynchronize(CUDASTREAM);
+    rgbToTensor<<<num_blocks, threads_per_block>>>(input_buffer, output_buffer);
+    check_status(cudaDeviceSynchronize());
     return (uint16_t)cudaSuccess;
 }
 

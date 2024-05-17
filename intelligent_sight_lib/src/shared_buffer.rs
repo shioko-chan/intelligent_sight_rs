@@ -181,6 +181,7 @@ mod tests {
         handle2.join().unwrap();
         assert_eq!(n - 1, *buffer.read().lock);
     }
+
     #[test]
     fn test_shared_buffer_mpsc() {
         let n = 1000000;

@@ -6,10 +6,14 @@ use std::mem;
 
 mod cuda_op_ffi {
     extern "C" {
+        #[cfg(target_os = "windows")]
         pub fn cuda_malloc(size: u32, ptr: *mut *mut u8) -> u16;
+        #[cfg(target_os = "linux")]
         pub fn cuda_malloc_managed(size: u32, ptr: *mut *mut u8) -> u16;
+        #[cfg(target_os = "windows")]
         pub fn cuda_malloc_host(size: u32, ptr: *mut *mut u8) -> u16;
         pub fn cuda_free(ptr: *mut u8) -> u16;
+        #[cfg(target_os = "windows")]
         pub fn cuda_free_host(ptr: *mut u8) -> u16;
         pub fn transfer_host_to_device(
             host_buffer: *const u8,
@@ -44,6 +48,7 @@ fn exec_and_check(function: impl FnOnce() -> Result<u16>) -> Result<()> {
     }
 }
 
+#[cfg(target_os = "windows")]
 pub fn cuda_malloc<T>(size: usize) -> Result<*mut T>
 where
     T: Sized,
@@ -60,22 +65,7 @@ where
     .map(|_| ptr)
 }
 
-pub fn cuda_malloc_managed<T>(size: usize) -> Result<*mut T>
-where
-    T: Sized,
-{
-    let mut ptr = std::ptr::null_mut();
-    exec_and_check(|| {
-        Ok(unsafe {
-            cuda_op_ffi::cuda_malloc_managed(
-                (size * mem::size_of::<T>() / mem::size_of::<u8>()) as u32,
-                &mut ptr as *mut *mut T as *mut *mut u8,
-            )
-        })
-    })
-    .map(|_| ptr)
-}
-
+#[cfg(target_os = "windows")]
 pub fn cuda_malloc_host<T>(size: usize) -> Result<*mut T>
 where
     T: Sized,
@@ -92,10 +82,28 @@ where
     .map(|_| ptr)
 }
 
+#[cfg(target_os = "linux")]
+pub fn cuda_malloc_managed<T>(size: usize) -> Result<*mut T>
+where
+    T: Sized,
+{
+    let mut ptr = std::ptr::null_mut();
+    exec_and_check(|| {
+        Ok(unsafe {
+            cuda_op_ffi::cuda_malloc_managed(
+                (size * mem::size_of::<T>() / mem::size_of::<u8>()) as u32,
+                &mut ptr as *mut *mut T as *mut *mut u8,
+            )
+        })
+    })
+    .map(|_| ptr)
+}
+
 pub fn cuda_free<T>(ptr: *mut T) -> Result<()> {
     exec_and_check(|| Ok(unsafe { cuda_op_ffi::cuda_free(ptr as *mut u8) }))
 }
 
+#[cfg(target_os = "windows")]
 pub fn cuda_free_host<T>(ptr: *mut T) -> Result<()> {
     exec_and_check(|| Ok(unsafe { cuda_op_ffi::cuda_free_host(ptr as *mut u8) }))
 }
@@ -123,7 +131,7 @@ pub fn transfer_host_to_device<T>(
             cuda_op_ffi::transfer_host_to_device(
                 host_buffer as *const u8,
                 device_buffer as *mut u8,
-                size as u32,
+                (size * mem::size_of::<T>() / mem::size_of::<u8>()) as u32,
             )
         })
     })
@@ -139,7 +147,7 @@ pub fn transfer_device_to_host<T>(
             cuda_op_ffi::transfer_device_to_host(
                 host_buffer as *mut u8,
                 device_buffer as *const u8,
-                size as u32,
+                (size * mem::size_of::<T>() / mem::size_of::<u8>()) as u32,
             )
         })
     })
@@ -149,18 +157,21 @@ pub fn transfer_device_to_host<T>(
 mod tests {
     use super::*;
 
+    #[cfg(target_os = "windows")]
     #[test]
     fn test_malloc() {
         let ptr: *mut f64 = cuda_malloc(1024).expect("malloc error");
         cuda_free(ptr).expect("free error");
     }
 
+    #[cfg(target_os = "windows")]
     #[test]
     fn test_malloc_host() {
         let ptr: *mut u128 = cuda_malloc_host(1024).expect("malloc error");
         cuda_free_host(ptr).expect("free error");
     }
 
+    #[cfg(target_os = "linux")]
     #[test]
     fn test_malloc_managed() {
         let ptr: *mut f32 = cuda_malloc_managed(1024).expect("malloc error");
@@ -170,10 +181,23 @@ mod tests {
     #[test]
     fn test_convert_img_tensor() {
         let mut image = Image::new(640, 480).unwrap();
-        let mut tensor = Tensor::new(vec![640, 640, 3]).unwrap();
+        for data in image.iter_mut() {
+            *data = 255;
+        }
+        let mut tensor = Tensor::new(vec![1, 3, 640, 640]).unwrap();
+
         convert_rgb888_3dtensor(&mut image, &mut tensor).unwrap();
-        for data in tensor.iter().take(640 * 80) {
-            assert_eq!(*data, 0.5);
+        tensor.to_host().unwrap();
+        for i in 0..3 {
+            for data in tensor.iter().skip(640 * 640 * i).take(640 * 80) {
+                assert_eq!(*data, 0.5);
+            }
+            for data in tensor.iter().skip(640 * 80 + 640 * 640 * i).take(640 * 480) {
+                assert_eq!(*data, 1.0);
+            }
+            for data in tensor.iter().skip(640 * 560 + 640 * 640 * i).take(640 * 80) {
+                assert_eq!(*data, 0.5);
+            }
         }
     }
 }

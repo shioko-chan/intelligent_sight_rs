@@ -59,7 +59,6 @@ impl Processor for TrtThread {
                 if let Err(err) = convert_rgb888_3dtensor(&mut lock_input, &mut engine_input_buffer)
                 {
                     warn!("InferThread: convert image to tensor failed {}", err);
-                    stop_sig.store(true, Ordering::Relaxed);
                     break;
                 }
                 drop(lock_input);
@@ -70,19 +69,17 @@ impl Processor for TrtThread {
 
                 if let Err(err) = set_input(&mut engine_input_buffer) {
                     warn!("InferThread: set input buffer failed, error {}", err);
-                    stop_sig.store(true, Ordering::Relaxed);
                     break;
                 }
 
                 let mut lock_output = output_buffer.write();
                 if let Err(err) = set_output(&mut lock_output) {
                     warn!("InferThread: set output buffer failed, error {}", err);
-                    stop_sig.store(true, Ordering::Relaxed);
                     break;
                 }
+
                 if let Err(err) = infer() {
                     warn!("InferThread: infer failed, error {}", err);
-                    stop_sig.store(true, Ordering::Relaxed);
                     break;
                 }
                 drop(lock_output);
@@ -98,6 +95,7 @@ impl Processor for TrtThread {
                     }
                 }
             }
+            stop_sig.store(true, Ordering::Relaxed);
         })
     }
 }

@@ -383,6 +383,7 @@ mod unified_item_linux {
         }
     }
 }
+
 #[cfg(test)]
 mod test {
     use super::*;

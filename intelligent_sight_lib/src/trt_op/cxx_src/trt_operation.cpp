@@ -138,6 +138,10 @@ TensorrtInfer::~TensorrtInfer()
 
 uint16_t create_engine(const char *engine_filename, const char *input_name, const char *output_name, uint32_t width, uint32_t height)
 {
+    if (TRT_INFER != nullptr)
+    {
+        return TRT_ENGINE_ALREADY_CREATED;
+    }
     TRT_INFER = new TensorrtInfer(engine_filename, input_name, output_name, width, height);
     return TRT_INFER->create_engine();
 }

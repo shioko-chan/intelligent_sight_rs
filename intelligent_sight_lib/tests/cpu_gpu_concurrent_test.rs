@@ -1,11 +1,12 @@
 use intelligent_sight_lib::{
-    create_context, create_engine, infer, set_input, set_output, SharedBuffer, Tensor,
+    create_context, create_engine, infer, release_resources, set_input, set_output, SharedBuffer,
+    Tensor,
 };
 use std::sync::Arc;
 use std::thread;
 
 #[test]
-fn concurrent_write_test() {
+fn concurrent_rw_test() {
     let shared_buffer =
         Arc::new(SharedBuffer::new(2, || Tensor::new(vec![1, 3, 640, 640])).unwrap());
     let shared_buffer1 = shared_buffer.clone();
@@ -19,6 +20,7 @@ fn concurrent_write_test() {
             set_input(&mut lock).unwrap();
             infer().unwrap();
         }
+        release_resources().unwrap();
     });
     for _ in 0..1000 {
         let mut lock = shared_buffer1.write();
