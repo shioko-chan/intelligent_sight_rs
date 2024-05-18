@@ -130,10 +130,18 @@ TensorrtInfer::TensorrtInfer(const char *engine_filename, const char *input_name
 TensorrtInfer::~TensorrtInfer()
 {
     // Release resources
-    cudaStreamDestroy(CUDA_STREAM);
     delete CONTEXT;
     delete M_ENGINE;
     delete RUNTIME;
+    delete ENGINE_NAME;
+    delete INPUT_NAME;
+    delete OUTPUT_NAME;
+}
+
+uint16_t TensorrtInfer::release_resources()
+{
+    check_status(cudaStreamDestroy(TRT_INFER->CUDA_STREAM));
+    return (uint16_t)TRT_OK;
 }
 
 uint16_t create_engine(const char *engine_filename, const char *input_name, const char *output_name, uint32_t width, uint32_t height)
@@ -174,6 +182,7 @@ uint16_t infer()
 
 uint16_t release_resources()
 {
+    check_status(TRT_INFER->release_resources());
     delete TRT_INFER;
     return TRT_OK;
 }

@@ -18,5 +18,8 @@ pub use cuda_op::{
 pub use cuda_op::{cuda_free_host, cuda_malloc, cuda_malloc_host};
 pub use data_structures::{Image, Tensor};
 pub use shared_buffer::SharedBuffer;
-pub use trt_op::{create_context, create_engine, infer, release_resources, set_input, set_output};
+pub use trt_op::{
+    create_context, create_engine, infer, postprocess, postprocess_destroy, postprocess_init,
+    release_resources, set_input, set_output,
+};
 pub use unified_item::{UnifiedItem, UnifiedTrait};

@@ -2,7 +2,7 @@ use crate::thread_trait::Processor;
 use anyhow::Result;
 use intelligent_sight_lib::{
     convert_rgb888_3dtensor, create_context, create_engine, infer, release_resources, set_input,
-    set_output, Image, SharedBuffer, Tensor, UnifiedTrait,
+    set_output, Image, SharedBuffer, Tensor,
 };
 use log::{debug, info, log_enabled, trace, warn};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -26,9 +26,7 @@ impl Drop for TrtThread {
 impl Processor for TrtThread {
     type Output = Tensor;
 
-    fn get_output_buffer(
-        &self,
-    ) -> std::sync::Arc<intelligent_sight_lib::SharedBuffer<Self::Output>> {
+    fn get_output_buffer(&self) -> Arc<SharedBuffer<Self::Output>> {
         self.output_buffer.clone()
     }
 
@@ -48,7 +46,11 @@ impl Processor for TrtThread {
             let mut cnt = 0;
             let mut start = std::time::Instant::now();
             let mut engine_input_buffer = Tensor::new(vec![1, 3, 640, 640]).unwrap();
-
+            if let Err(err) = set_input(&mut engine_input_buffer) {
+                warn!("InferThread: set input buffer failed, error {}", err);
+                stop_sig.store(true, Ordering::Relaxed);
+                return;
+            }
             info!(
                 "InferThread: middle buffer size: {:?}",
                 engine_input_buffer.size(),
@@ -67,22 +69,15 @@ impl Processor for TrtThread {
                     trace!("InferThread: finish convert_rgb888_3dtensor");
                 }
 
-                if let Err(err) = set_input(&mut engine_input_buffer) {
-                    warn!("InferThread: set input buffer failed, error {}", err);
-                    break;
-                }
-
                 let mut lock_output = output_buffer.write();
                 if let Err(err) = set_output(&mut lock_output) {
                     warn!("InferThread: set output buffer failed, error {}", err);
                     break;
                 }
-
                 if let Err(err) = infer() {
                     warn!("InferThread: infer failed, error {}", err);
                     break;
                 }
-                lock_output.to_host().unwrap();
                 drop(lock_output);
                 if log_enabled!(log::Level::Debug) {
                     cnt += 1;
@@ -112,7 +107,7 @@ impl TrtThread {
         drop(read_lock);
 
         info!("InferThread: output buffer size: {:?}", vec![1, 32, 8400]);
-        Ok(TrtThread {
+        Ok(Self {
             input_buffer,
             output_buffer: Arc::new(SharedBuffer::new(4, || Tensor::new(vec![1, 32, 8400]))?),
             stop_sig,

@@ -6,7 +6,7 @@
 #include <cuda_runtime_api.h>
 #include <thrust/device_ptr.h>
 
-constexpr uint32_t MAX_DETECT = 25;
+constexpr uint16_t MAX_DETECT = 25;
 constexpr float CONF_THRESHOLD = 0.5;
 constexpr float IOU_THRESHOLD = 0.5;
 
@@ -54,6 +54,7 @@ private:
 public:
     TensorrtInfer(const char *engine_filename, const char *input_name, const char *output_name, uint32_t width, uint32_t height);
     ~TensorrtInfer();
+    uint16_t release_resources();
     uint16_t create_engine();
     uint16_t infer();
     uint16_t create_context();
@@ -64,15 +65,16 @@ public:
 struct PostProcess
 {
 private:
-    float *transformed;
-    int *indices;
+    float *transformed, *host_transformed;
+    int *indices, *host_indices;
     thrust::device_ptr<int> d_indices;
     thrust::device_ptr<float> d_transformed;
+    bool check_iou(float *box1, float *box2);
 
 public:
-    ~PostProcess();
     uint16_t init();
-    uint16_t post_process(float *input_buffer, float *output_buffer);
+    uint16_t post_process(float *input_buffer, float *output_buffer, uint16_t *num_detections);
+    uint16_t uninit();
 };
 
 extern "C"
@@ -84,6 +86,7 @@ extern "C"
     uint16_t set_input(float *input_buffer);
     uint16_t set_output(float *output_buffer);
     uint16_t postprocess_init();
-    uint16_t postprocess(float *input_buffer, float *output_buffer);
+    uint16_t postprocess(float *input_buffer, float *output_buffer, uint16_t *num_detections);
+    uint16_t postprocess_destroy();
 }
 #endif

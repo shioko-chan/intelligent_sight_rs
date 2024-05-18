@@ -5,6 +5,7 @@
 // input tensor shape (1, 32, 8400)
 // 32: 4(xywh) + 18(class) + 10(kpnt)
 // output shape (1, 8400, 16)
+// 16: 4(xywh) + 1(score) + 1(cls) + 10(kpnt)
 __global__ void transform_results(float *input_buffer, float *output_buffer)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -35,39 +36,101 @@ __global__ void transform_results(float *input_buffer, float *output_buffer)
     }
 }
 
-// input tensor shape (1, 8400, 16)
-// 16: 4(xywh) + 1(score) + 1(cls) + 10(kpnt)
-// output shape (MAX_DETECTION, 16)
-__global__ void nms(float *input_buffer, float *output_buffer)
-{
-}
-
-PostProcess::~PostProcess()
-{
-    cudaFree(this->transformed);
-    cudaFree(this->indices);
-}
-
 uint16_t PostProcess::init()
 {
     check_status(cudaMalloc(&this->transformed, 8400 * 16 * sizeof(float)));
     check_status(cudaMalloc(&this->indices, 8400 * sizeof(int)));
-    this->d_indices = thrust::device_ptr<int>(this->indices);
+
     this->d_transformed = thrust::device_ptr<float>(this->transformed);
+    this->d_indices = thrust::device_ptr<int>(this->indices);
+
+    check_status(cudaMallocHost(&this->host_transformed, 8400 * 16 * sizeof(float)));
+    check_status(cudaMallocHost(&this->host_indices, 8400 * sizeof(int)));
+
+    return (uint16_t)cudaSuccess;
 }
+
+uint16_t PostProcess::uninit()
+{
+    check_status(cudaFree(this->transformed));
+    check_status(cudaFree(this->indices));
+
+    check_status(cudaFreeHost(this->host_transformed));
+    check_status(cudaFreeHost(this->host_indices));
+
+    return (uint16_t)cudaSuccess;
+}
+
+bool PostProcess::check_iou(float *box1, float *box2)
+{
+    float x1 = box1[0];
+    float y1 = box1[1];
+    float w1 = box1[2];
+    float h1 = box1[3];
+    float x2 = box2[0];
+    float y2 = box2[1];
+    float w2 = box2[2];
+    float h2 = box2[3];
+    float area_inter = fmax(fmin(x1 + w1 / 2, x2 + w2 / 2) - fmax(x1 - w1 / 2, x2 - w2 / 2), 0.0f) * fmax(fmin(y1 + h1 / 2, y2 + h2 / 2) - fmax(y1 - h1 / 2, y2 - h2 / 2), 0.0f);
+    float area_union = w1 * h1 + w2 * h2 - area_inter;
+    return area_inter / area_union > IOU_THRESHOLD;
+}
+
+#include <cstdio>
 
 // input buffer (1, 32, 8400)
 // output buffer (MAX_DETECTION, 16)
-uint16_t PostProcess::post_process(float *input_buffer, float *output_buffer)
+// 16: 4(xywh) + 1(score) + 1(cls) + 10(kpnt)
+uint16_t PostProcess::post_process(float *input_buffer, float *output_buffer, uint16_t *num_detections)
 {
     dim3 threads_pre_block(48);
     dim3 blocks(175);
+    // (1, 32, 8400)
     transform_results<<<blocks, threads_pre_block>>>(input_buffer, this->transformed);
+    // (1, 8400, 16)
     check_status(cudaDeviceSynchronize());
     thrust::sequence(this->d_indices, this->d_indices + 8400);
-    thrust::sort(this->d_indices, this->d_indices + 8400, [this] __device__(int a, int b)
-                 { return this->d_transformed[a * 32 + 4] > this->d_transformed[b * 32 + 4]; });
 
+    thrust::sort(this->d_indices, this->d_indices + 8400, [d_transformed = this->d_transformed] __device__(int a, int b)
+                 { return d_transformed[a * 16 + 4] > d_transformed[b * 16 + 4]; });
+
+    check_status(cudaMemcpy(this->host_indices, this->indices, 8400 * sizeof(int), cudaMemcpyDeviceToHost));
+    check_status(cudaMemcpy(this->host_transformed, this->transformed, 8400 * 16 * sizeof(float), cudaMemcpyDeviceToHost));
+
+    *num_detections = (uint16_t)MAX_DETECT;
+    for (int i = 0, j = 0; i < MAX_DETECT && j != -1; ++i)
+    {
+        int idx = this->host_indices[j];
+        if (this->host_transformed[idx * 16 + 4] < CONF_THRESHOLD)
+        {
+            *num_detections = (uint16_t)i;
+            break;
+        }
+        for (int item = 0; item < 16; ++item)
+        {
+            output_buffer[i * 16 + item] = this->host_transformed[idx * 16 + item];
+        }
+
+        int next = -1;
+        float *box = this->host_transformed + idx * 16;
+        for (; j < 8400; ++j)
+        {
+            int idx1 = this->host_indices[j];
+            if (idx1 == -1)
+            {
+                continue;
+            }
+            if (check_iou(box, this->host_transformed + idx1 * 16))
+            {
+                this->host_indices[j] = -1;
+            }
+            else if (next == -1)
+            {
+                next = j;
+            }
+        }
+        j = next;
+    }
     return (uint16_t)cudaSuccess;
 }
 
@@ -82,8 +145,16 @@ uint16_t postprocess_init()
 
 // input buffer (1, 32, 8400)
 // output buffer (MAX_DETECTION, 16)
-uint16_t postprocess(float *input_buffer, float *output_buffer)
+// 16: 4(xywh) + 1(score) + 1(cls) + 10(kpnt)
+uint16_t postprocess(float *input_buffer, float *output_buffer, uint16_t *num_detections)
 {
-    check_status(POSTPROCESS->post_process(input_buffer, output_buffer));
+    check_status(POSTPROCESS->post_process(input_buffer, output_buffer, num_detections));
+    return (uint16_t)cudaSuccess;
+}
+
+uint16_t postprocess_destroy()
+{
+    check_status(POSTPROCESS->uninit());
+    delete POSTPROCESS;
     return (uint16_t)cudaSuccess;
 }

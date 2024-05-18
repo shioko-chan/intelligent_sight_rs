@@ -1,4 +1,5 @@
 mod err_code;
+
 use crate::cuda_op::err_code::CUDA_ERR_NAME;
 use crate::{UnifiedItem, UnifiedTrait};
 use anyhow::{anyhow, Result};
@@ -19,6 +20,13 @@ mod trt_op_ffi {
         pub fn release_resources() -> u16;
         pub fn set_input(input_buffer: *mut f32) -> u16;
         pub fn set_output(output_buffer: *mut f32) -> u16;
+        pub fn postprocess_init() -> u16;
+        pub fn postprocess(
+            input_buffer: *const f32,
+            output_buffer: *mut f32,
+            num_detections: *mut u16,
+        ) -> u16;
+        pub fn postprocess_destroy() -> u16;
     }
 }
 
@@ -86,6 +94,31 @@ pub fn set_output(output_buffer: &mut UnifiedItem<f32>) -> Result<()> {
     exec_and_check(|| Ok(unsafe { trt_op_ffi::set_output(output_buffer.device()?) }))
 }
 
+pub fn postprocess_init() -> Result<()> {
+    exec_and_check(|| Ok(unsafe { trt_op_ffi::postprocess_init() }))
+}
+
+pub fn postprocess(
+    input_buffer: &mut UnifiedItem<f32>,
+    output_buffer: &mut UnifiedItem<f32>,
+) -> Result<u16> {
+    let mut num_detections = 0;
+    exec_and_check(|| {
+        Ok(unsafe {
+            trt_op_ffi::postprocess(
+                input_buffer.device()?,
+                output_buffer.device()?,
+                &mut num_detections,
+            )
+        })
+    })
+    .map(|_| num_detections)
+}
+
+pub fn postprocess_destroy() -> Result<()> {
+    exec_and_check(|| Ok(unsafe { trt_op_ffi::postprocess_destroy() }))
+}
+
 #[cfg(test)]
 mod test {
     use crate::Tensor;
@@ -107,13 +140,13 @@ mod test {
         release_resources().unwrap();
         output.to_host().unwrap();
 
-        for i in 4..21 {
-            println!(
-                "{} {}",
-                i - 4,
-                output.iter().skip(i * 8400).take(1).next().unwrap()
-            );
-        }
+        // for i in 4..21 {
+        //     println!(
+        //         "{} {}",
+        //         i - 4,
+        //         output.iter().skip(i * 8400).take(1).next().unwrap()
+        //     );
+        // }
         // for num in output.iter()
         // .enumerate()
         // .skip_while(|(_, num)| **num > 1.0)
@@ -122,13 +155,23 @@ mod test {
         // println!("{} {}", idx, num);
         // assert!(num < &660.0, "num: {}", num);
         // }
+        // println!(
+        //     "{}",
+        //     output
+        //         .iter()
+        //         .max_by(|a, b| a.partial_cmp(b).unwrap())
+        //         .unwrap()
+        // )
+    }
 
-        println!(
-            "{}",
-            output
-                .iter()
-                .max_by(|a, b| a.partial_cmp(b).unwrap())
-                .unwrap()
-        )
+    #[test]
+    fn test_postprocess() {
+        postprocess_init().unwrap();
+
+        let mut input_buffer = Tensor::new(vec![1, 32, 8400]).unwrap();
+        let mut output_buffer = Tensor::new(vec![25, 16]).unwrap();
+
+        postprocess(&mut input_buffer, &mut output_buffer).unwrap();
+        postprocess_destroy().unwrap();
     }
 }

@@ -29,6 +29,8 @@ target("cuda_wrapper")
     set_targetdir("$(projectdir)/clibs")
     add_files("src/cuda_op/cu_src/*.cu")
     add_files("src/trt_op/cxx_src/*.cpp")
+    add_files("src/trt_op/cxx_src/*.cu")
+    add_cuflags("--extended-lambda")
     add_cugencodes("native")
     if is_os("windows") then
         add_includedirs('C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.4\\include', 'D:\\Program Files (x86)\\TensorRT-10.0.0.6\\include')
