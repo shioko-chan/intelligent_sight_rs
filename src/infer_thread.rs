@@ -38,9 +38,10 @@ impl Processor for TrtThread {
         thread::spawn(move || {
             if let Err(err) = create_context() {
                 warn!(
-                    "InferThread: failed create engine, context, runtime due to error: {}",
+                    "InferThread: failed create context, due to error: {}",
                     err
                 );
+                stop_sig.store(true, Ordering::Relaxed);
                 return;
             }
             let mut cnt = 0;

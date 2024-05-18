@@ -92,7 +92,6 @@ bool PostProcess::check_iou(float *box1, float *box2)
 //     auto end = std::chrono::high_resolution_clock::now();
 //     auto diff = end - start;
 //     std::cout << "Time taken by 1" << ": " << diff.count() << " seconds" << std::endl;
-
 //     start = std::chrono::high_resolution_clock::now();
 //     thrust::sequence(this->d_indices, this->d_indices + 8400);
 //     end = std::chrono::high_resolution_clock::now();
@@ -121,7 +120,6 @@ bool PostProcess::check_iou(float *box1, float *box2)
 //             break;
 //         }
 //     }
-
 //     for (int i = 0, j = 0; i < MAX_DETECT && j != -1; ++i)
 //     {
 //         int idx = this->host_indices[j];
@@ -134,13 +132,11 @@ bool PostProcess::check_iou(float *box1, float *box2)
 //         {
 //             output_buffer[i * 16 + item] = this->host_transformed[idx * 16 + item];
 //         }
-
 //         int next = -1;
 //         float *box = this->host_transformed + idx * 16;
 //         for (; j < last; ++j)
 //         {
 //             int idx1 = this->host_indices[j];
-
 //             if (idx1 == -1)
 //             {
 //                 continue;
@@ -174,7 +170,6 @@ uint16_t PostProcess::post_process(float *input_buffer, float *output_buffer, ui
     // (1, 8400, 16)
     check_status(cudaDeviceSynchronize());
     thrust::sequence(this->d_indices, this->d_indices + 8400);
-
     thrust::sort(this->d_indices, this->d_indices + 8400, [d_transformed = this->d_transformed] __device__(int a, int b)
                  { return d_transformed[a * 16 + 4] > d_transformed[b * 16 + 4]; });
 

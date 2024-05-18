@@ -1,10 +1,10 @@
 use anyhow::Result;
 
-#[cfg(any(target_os = "windows", target_arch = "aarch64"))]
+// #[cfg(any(target_os = "windows", target_arch = "aarch64"))]
 pub use unified_item_tradition::*;
 
-#[cfg(not(any(target_os = "windows", target_arch = "aarch64")))]
-pub use unified_item_UMA::*;
+// #[cfg(not(any(target_os = "windows", target_arch = "aarch64")))]
+// pub use unified_item_uma::*;
 
 pub trait UnifiedTrait<T> {
     fn to_device(&mut self) -> Result<*mut T>;
@@ -14,7 +14,7 @@ pub trait UnifiedTrait<T> {
     fn len(&self) -> usize;
 }
 
-#[cfg(any(target_os = "windows", target_arch = "aarch64"))]
+// #[cfg(any(target_os = "windows", target_arch = "aarch64"))]
 mod unified_item_tradition {
     use super::UnifiedTrait;
     use crate::{
@@ -227,7 +227,7 @@ mod unified_item_tradition {
 }
 
 #[cfg(not(any(target_os = "windows", target_arch = "aarch64")))]
-mod unified_item_UMA {
+mod unified_item_uma {
     use super::UnifiedTrait;
     use crate::{cuda_free, cuda_malloc_managed};
     use anyhow::Result;
