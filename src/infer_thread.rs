@@ -2,7 +2,7 @@ use crate::thread_trait::Processor;
 use anyhow::Result;
 use intelligent_sight_lib::{
     convert_rgb888_3dtensor, create_context, create_engine, infer, release_resources, set_input,
-    set_output, Image, SharedBuffer, Tensor,
+    set_output, Image, SharedBuffer, Tensor, UnifiedTrait,
 };
 use log::{debug, info, log_enabled, trace, warn};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -82,8 +82,8 @@ impl Processor for TrtThread {
                     warn!("InferThread: infer failed, error {}", err);
                     break;
                 }
+                lock_output.to_host().unwrap();
                 drop(lock_output);
-
                 if log_enabled!(log::Level::Debug) {
                     cnt += 1;
                     if cnt == 10 {
@@ -111,10 +111,10 @@ impl TrtThread {
         );
         drop(read_lock);
 
-        info!("InferThread: output buffer size: {:?}", vec![1, 31, 8400]);
+        info!("InferThread: output buffer size: {:?}", vec![1, 32, 8400]);
         Ok(TrtThread {
             input_buffer,
-            output_buffer: Arc::new(SharedBuffer::new(4, || Tensor::new(vec![1, 31, 8400]))?),
+            output_buffer: Arc::new(SharedBuffer::new(4, || Tensor::new(vec![1, 32, 8400]))?),
             stop_sig,
         })
     }

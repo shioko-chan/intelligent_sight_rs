@@ -13,7 +13,7 @@ fn concurrent_rw_test() {
     let handle = thread::spawn(move || {
         create_engine("../model.trt", "images", "output0", 640, 640).unwrap();
         create_context().unwrap();
-        let mut out_buffer = Tensor::new(vec![1, 31, 8400]).unwrap();
+        let mut out_buffer = Tensor::new(vec![1, 32, 8400]).unwrap();
         set_output(&mut out_buffer).unwrap();
         for _ in 0..1000 {
             let mut lock = shared_buffer.read();

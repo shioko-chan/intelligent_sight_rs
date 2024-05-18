@@ -7,7 +7,7 @@ fn infer_bench(c: &mut Criterion) {
     create_engine("../model.trt", "images", "output0", 640, 640).unwrap();
     create_context().unwrap();
     let mut tensor = Tensor::new(vec![640, 640, 3]).unwrap();
-    let mut output = Tensor::new(vec![1, 31, 8400]).unwrap();
+    let mut output = Tensor::new(vec![1, 32, 8400]).unwrap();
     set_input(&mut tensor).unwrap();
     set_output(&mut output).unwrap();
     c.bench_function("inference", |b| {

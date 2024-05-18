@@ -98,17 +98,37 @@ mod test {
         create_context().unwrap();
 
         let mut input = Tensor::new(vec![1, 3, 640, 640]).unwrap();
-        let mut output = Tensor::new(vec![1, 31, 8400]).unwrap();
+        let mut output = Tensor::new(vec![1, 32, 8400]).unwrap();
         set_input(&mut input).unwrap();
         set_output(&mut output).unwrap();
 
         infer().unwrap();
 
         release_resources().unwrap();
-        // output.to_host().unwrap();
+        output.to_host().unwrap();
 
-        // for num in output.iter() {
-        // println!("{:?}", num);
+        for i in 4..21 {
+            println!(
+                "{} {}",
+                i - 4,
+                output.iter().skip(i * 8400).take(1).next().unwrap()
+            );
+        }
+        // for num in output.iter()
+        // .enumerate()
+        // .skip_while(|(_, num)| **num > 1.0)
+        // .take(32)
+        // {
+        // println!("{} {}", idx, num);
+        // assert!(num < &660.0, "num: {}", num);
         // }
+
+        println!(
+            "{}",
+            output
+                .iter()
+                .max_by(|a, b| a.partial_cmp(b).unwrap())
+                .unwrap()
+        )
     }
 }

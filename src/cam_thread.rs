@@ -93,6 +93,7 @@ impl Processor for CamThread {
                     cnt = 0;
                 }
             }
+            stop_sig.store(true, Ordering::Relaxed);
         })
     }
 }
