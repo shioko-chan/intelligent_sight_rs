@@ -37,7 +37,12 @@ target("cuda_wrapper")
     end
     if is_os("linux") then
         add_includedirs('/usr/local/cuda/include')
-        add_linkdirs('/usr/local/cuda/lib')
+        if os.isdir('/usr/local/cuda/lib') then
+            add_linkdirs('/usr/local/cuda/lib')
+        end
+        if os.isdir('/usr/local/cuda/lib64') then
+            add_linkdirs('/usr/local/cuda/lib64')
+        end
     end
     add_links("cudart", "cuda", "nvinfer")
 
