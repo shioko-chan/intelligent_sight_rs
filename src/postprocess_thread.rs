@@ -75,7 +75,7 @@ impl PostprocessThread {
         drop(read_lock);
         Ok(Self {
             input_buffer,
-            output_buffer: Arc::new(SharedBuffer::new(2, || Tensor::new(vec![25, 16]))?),
+            output_buffer: Arc::new(SharedBuffer::new(4, || Tensor::new(vec![25, 16]))?),
             stop_sig,
         })
     }

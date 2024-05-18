@@ -9,29 +9,35 @@
 __global__ void transform_results(float *input_buffer, float *output_buffer)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
 
     if (x < 8400)
     {
-        for (int i = 0; i < 4; i++)
+        if (y == 0)
         {
-            output_buffer[x * 32 + i] = input_buffer[i * 8400 + x];
-        }
-        float max_score = input_buffer[4 * 8400 + x];
-        int cls = 0;
-        for (int i = 5; i < 22; i++)
-        {
-            if (input_buffer[i * 8400 + x] > max_score)
+            for (int i = 0; i < 4; i++)
             {
-                max_score = input_buffer[i * 8400 + x];
-                cls = i - 4;
+                output_buffer[x * 32 + i] = input_buffer[i * 8400 + x];
+            }
+            for (int i = 22; i < 32; i++)
+            {
+                output_buffer[x * 32 + i] = input_buffer[i * 8400 + x];
             }
         }
-        output_buffer[x * 32 + 4] = max_score;
-        output_buffer[x * 32 + 5] = (float)cls;
-
-        for (int i = 22; i < 32; i++)
+        else if (y == 1)
         {
-            output_buffer[x * 32 + i] = input_buffer[i * 8400 + x];
+            float max_score = input_buffer[4 * 8400 + x];
+            int cls = 0;
+            for (int i = 5; i < 22; i++)
+            {
+                if (input_buffer[i * 8400 + x] > max_score)
+                {
+                    max_score = input_buffer[i * 8400 + x];
+                    cls = i - 4;
+                }
+            }
+            output_buffer[x * 32 + 4] = max_score;
+            output_buffer[x * 32 + 5] = (float)cls;
         }
     }
 }
@@ -76,14 +82,92 @@ bool PostProcess::check_iou(float *box1, float *box2)
     return area_inter / area_union > IOU_THRESHOLD;
 }
 
-#include <cstdio>
+// uint16_t PostProcess::post_process(float *input_buffer, float *output_buffer, uint16_t *num_detections)
+// {
+//     auto start = std::chrono::high_resolution_clock::now();
+//     dim3 threads_pre_block(48, 2);
+//     dim3 blocks(175);
+//     transform_results<<<blocks, threads_pre_block>>>(input_buffer, this->transformed);
+//     check_status(cudaDeviceSynchronize());
+//     auto end = std::chrono::high_resolution_clock::now();
+//     auto diff = end - start;
+//     std::cout << "Time taken by 1" << ": " << diff.count() << " seconds" << std::endl;
+
+//     start = std::chrono::high_resolution_clock::now();
+//     thrust::sequence(this->d_indices, this->d_indices + 8400);
+//     end = std::chrono::high_resolution_clock::now();
+//     diff = end - start;
+//     std::cout << "Time taken by 2" << ": " << diff.count() << " seconds" << std::endl;
+//     start = std::chrono::high_resolution_clock::now();
+//     thrust::sort(this->d_indices, this->d_indices + 8400, [d_transformed = this->d_transformed] __device__(int a, int b)
+//                  { return d_transformed[a * 16 + 4] > d_transformed[b * 16 + 4]; });
+//     end = std::chrono::high_resolution_clock::now();
+//     diff = end - start;
+//     std::cout << "Time taken by 3" << ": " << diff.count() << " seconds" << std::endl;
+//     start = std::chrono::high_resolution_clock::now();
+//     check_status(cudaMemcpy(this->host_indices, this->indices, 8400 * sizeof(int), cudaMemcpyDeviceToHost));
+//     check_status(cudaMemcpy(this->host_transformed, this->transformed, 8400 * 16 * sizeof(float), cudaMemcpyDeviceToHost));
+//     end = std::chrono::high_resolution_clock::now();
+//     diff = end - start;
+//     std::cout << "Time taken by 4" << ": " << diff.count() << " seconds" << std::endl;
+//     *num_detections = (uint16_t)MAX_DETECT;
+//     start = std::chrono::high_resolution_clock::now();
+//     int last = 8400;
+//     for (int i = 0; i < 8400; ++i)
+//     {
+//         if (this->host_transformed[i * 16 + 4] < CONF_THRESHOLD)
+//         {
+//             last = i;
+//             break;
+//         }
+//     }
+
+//     for (int i = 0, j = 0; i < MAX_DETECT && j != -1; ++i)
+//     {
+//         int idx = this->host_indices[j];
+//         if (this->host_transformed[idx * 16 + 4] < CONF_THRESHOLD)
+//         {
+//             *num_detections = (uint16_t)i;
+//             break;
+//         }
+//         for (int item = 0; item < 16; ++item)
+//         {
+//             output_buffer[i * 16 + item] = this->host_transformed[idx * 16 + item];
+//         }
+
+//         int next = -1;
+//         float *box = this->host_transformed + idx * 16;
+//         for (; j < last; ++j)
+//         {
+//             int idx1 = this->host_indices[j];
+
+//             if (idx1 == -1)
+//             {
+//                 continue;
+//             }
+//             if (check_iou(box, this->host_transformed + idx1 * 16))
+//             {
+//                 this->host_indices[j] = -1;
+//             }
+//             else if (next == -1)
+//             {
+//                 next = j;
+//             }
+//         }
+//         j = next;
+//     }
+//     end = std::chrono::high_resolution_clock::now();
+//     diff = end - start;
+//     std::cout << "Time taken by 5" << ": " << diff.count() << " seconds" << std::endl;
+//     return (uint16_t)cudaSuccess;
+// }
 
 // input buffer (1, 32, 8400)
 // output buffer (MAX_DETECTION, 16)
 // 16: 4(xywh) + 1(score) + 1(cls) + 10(kpnt)
 uint16_t PostProcess::post_process(float *input_buffer, float *output_buffer, uint16_t *num_detections)
 {
-    dim3 threads_pre_block(48);
+    dim3 threads_pre_block(48, 2);
     dim3 blocks(175);
     // (1, 32, 8400)
     transform_results<<<blocks, threads_pre_block>>>(input_buffer, this->transformed);
@@ -97,15 +181,21 @@ uint16_t PostProcess::post_process(float *input_buffer, float *output_buffer, ui
     check_status(cudaMemcpy(this->host_indices, this->indices, 8400 * sizeof(int), cudaMemcpyDeviceToHost));
     check_status(cudaMemcpy(this->host_transformed, this->transformed, 8400 * 16 * sizeof(float), cudaMemcpyDeviceToHost));
 
-    *num_detections = (uint16_t)MAX_DETECT;
-    for (int i = 0, j = 0; i < MAX_DETECT && j != -1; ++i)
+    int last = 8400;
+    for (int i = 0; i < 8400; ++i)
     {
-        int idx = this->host_indices[j];
+        int idx = this->host_indices[i];
         if (this->host_transformed[idx * 16 + 4] < CONF_THRESHOLD)
         {
-            *num_detections = (uint16_t)i;
+            last = i;
             break;
         }
+    }
+
+    int i = 0;
+    for (int j = 0; i < MAX_DETECT && j != -1; ++i)
+    {
+        int idx = this->host_indices[j];
         for (int item = 0; item < 16; ++item)
         {
             output_buffer[i * 16 + item] = this->host_transformed[idx * 16 + item];
@@ -113,7 +203,7 @@ uint16_t PostProcess::post_process(float *input_buffer, float *output_buffer, ui
 
         int next = -1;
         float *box = this->host_transformed + idx * 16;
-        for (; j < 8400; ++j)
+        for (; j < last; ++j)
         {
             int idx1 = this->host_indices[j];
             if (idx1 == -1)
@@ -131,6 +221,7 @@ uint16_t PostProcess::post_process(float *input_buffer, float *output_buffer, ui
         }
         j = next;
     }
+    *num_detections = (uint16_t)i;
     return (uint16_t)cudaSuccess;
 }
 

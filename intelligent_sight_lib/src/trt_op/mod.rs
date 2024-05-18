@@ -107,7 +107,7 @@ pub fn postprocess(
         Ok(unsafe {
             trt_op_ffi::postprocess(
                 input_buffer.device()?,
-                output_buffer.device()?,
+                output_buffer.host(),
                 &mut num_detections,
             )
         })
