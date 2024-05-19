@@ -50,6 +50,7 @@ private:
     nvinfer1::IRuntime *RUNTIME = nullptr;
     uint32_t WIDTH, HEIGHT;
     const char *ENGINE_NAME, *INPUT_NAME, *OUTPUT_NAME;
+    // float *INPUT, *OUTPUT;
 
 public:
     TensorrtInfer(const char *engine_filename, const char *input_name, const char *output_name, uint32_t width, uint32_t height);

@@ -9,16 +9,13 @@ cudaStream_t CUDASTREAM = nullptr;
 // {
 //     int x = blockIdx.x * blockDim.x + threadIdx.x;
 //     int y = blockIdx.y * blockDim.y + threadIdx.y;
-
 //     if (x < width && y < height + 160)
 //     {
 //         int idx_out = (y * width + x);
 //         int size_out = width * (height + 160);
-
 //         if (y < height + 80 && y >= 80)
 //         {
 //             int idx_in = 3 * ((y - 80) * width + x);
-
 //             output[idx_out] = input[idx_in] / 255.0f;                    // R
 //             output[idx_out + size_out] = input[idx_in + 1] / 255.0f;     // G
 //             output[idx_out + 2 * size_out] = input[idx_in + 2] / 255.0f; // B

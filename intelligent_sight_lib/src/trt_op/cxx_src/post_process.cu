@@ -1,4 +1,5 @@
 #include "trt.h"
+#include <cuda_runtime_api.h>
 #include <thrust/device_vector.h>
 #include <thrust/sort.h>
 
@@ -21,7 +22,7 @@ __global__ void transform_results(float *input_buffer, float *output_buffer)
             }
             for (int i = 22; i < 32; i++)
             {
-                output_buffer[x * 32 + i] = input_buffer[i * 8400 + x];
+                output_buffer[x * 32 + i - 16] = input_buffer[i * 8400 + x];
             }
         }
         else if (y == 1)

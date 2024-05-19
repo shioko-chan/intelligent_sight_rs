@@ -89,6 +89,7 @@ uint16_t TensorrtInfer::set_input(float *input_buffer)
         G_LOGGER.log(nvinfer1::ILogger::Severity::kERROR, "Failed to set input tensor address");
         return TRT_INFER_FAIL;
     }
+    // INPUT = input_buffer;
     return TRT_OK;
 }
 
@@ -99,19 +100,20 @@ uint16_t TensorrtInfer::set_output(float *output_buffer)
         G_LOGGER.log(nvinfer1::ILogger::Severity::kERROR, "Failed to set output tensor address");
         return TRT_INFER_FAIL;
     }
+    // OUTPUT = output_buffer;
     return TRT_OK;
 }
 
 uint16_t TensorrtInfer::infer()
 {
-    // void *binding[2] = {input_buffer, output_buffer};
+    // void *binding[2] = {INPUT, OUTPUT};
     // CONTEXT->executeV2(binding);
+
     if (!CONTEXT->enqueueV3(CUDA_STREAM))
     {
         G_LOGGER.log(nvinfer1::ILogger::Severity::kERROR, "Failed to enqueue");
         return TRT_INFER_FAIL;
     }
-
     check_status(cudaStreamSynchronize(CUDA_STREAM));
 
     return TRT_OK;
