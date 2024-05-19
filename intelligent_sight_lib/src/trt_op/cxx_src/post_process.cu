@@ -18,11 +18,11 @@ __global__ void transform_results(float *input_buffer, float *output_buffer)
         {
             for (int i = 0; i < 4; i++)
             {
-                output_buffer[x * 32 + i] = input_buffer[i * 8400 + x];
+                output_buffer[x * 16 + i] = input_buffer[i * 8400 + x];
             }
             for (int i = 22; i < 32; i++)
             {
-                output_buffer[x * 32 + i - 16] = input_buffer[i * 8400 + x];
+                output_buffer[x * 16 + i - 16] = input_buffer[i * 8400 + x];
             }
         }
         else if (y == 1)
@@ -37,8 +37,8 @@ __global__ void transform_results(float *input_buffer, float *output_buffer)
                     cls = i - 4;
                 }
             }
-            output_buffer[x * 32 + 4] = max_score;
-            output_buffer[x * 32 + 5] = (float)cls;
+            output_buffer[x * 16 + 4] = max_score;
+            output_buffer[x * 16 + 5] = (float)cls;
         }
     }
 }
