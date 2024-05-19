@@ -1,4 +1,4 @@
-workspace = { members = ["intelligent_sight_lib"] }
+workspace = { members = ["intelligent_sight_lib", "rviz", "threads"] }
 [package]
 name = "intelligent_sight_rs"
 version = "0.1.0"
@@ -10,15 +10,10 @@ authors = ["Aya <shioriaya@foxmail.com>"]
 [dependencies]
 anyhow = "1.0.79"
 ctrlc = "3.4.4"
-intelligent_sight_lib = { path = "intelligent_sight_lib" }
+threads = { path = "threads" }
 env_logger = "0.11.3"
 log = "0.4.21"
 
 [build-dependencies]
 
 [dev-dependencies]
-# criterion = "0.5.1"
-
-# [[bench]]
-# name = "shared_buffer_bench"
-# harness = false
