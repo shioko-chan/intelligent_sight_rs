@@ -1,14 +1,16 @@
 use crate::thread_trait::Processor;
 use anyhow::{anyhow, Result};
 use intelligent_sight_lib::{
-    get_image, initialize_camera, uninitialize_camera, FlipFlag, Image, SharedBuffer,
+    get_image, initialize_camera, uninitialize_camera, FlipFlag, SharedBuffer,
 };
 use log::{debug, info, log_enabled, warn};
+use opencv::{self as cv, prelude::*};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
+
 pub struct CamThread {
-    shared_buffer: Arc<SharedBuffer<Image>>,
+    shared_buffer: Arc<SharedBuffer<intelligent_sight_lib::Image>>,
     stop_sig: Arc<AtomicBool>,
 }
 
@@ -35,7 +37,7 @@ impl CamThread {
         );
         Ok(CamThread {
             shared_buffer: Arc::new(SharedBuffer::new(4, || {
-                Image::new(buffer_width[0], buffer_height[0])
+                intelligent_sight_lib::Image::new(buffer_width[0], buffer_height[0])
             })?),
             stop_sig,
         })
@@ -57,10 +59,11 @@ impl Drop for CamThread {
         }
     }
 }
-impl Processor for CamThread {
-    type Output = Image;
 
-    fn get_output_buffer(&self) -> Arc<SharedBuffer<Image>> {
+impl Processor for CamThread {
+    type Output = intelligent_sight_lib::Image;
+
+    fn get_output_buffer(&self) -> Arc<SharedBuffer<intelligent_sight_lib::Image>> {
         self.shared_buffer.clone()
     }
 
@@ -80,6 +83,7 @@ impl Processor for CamThread {
                         break;
                     }
                 }
+                // let mat =
                 drop(lock);
 
                 cnt += 1;
