@@ -1,10 +1,12 @@
 use crate::thread_trait::Processor;
 use anyhow::{anyhow, Result};
+use cv::core::CV_AUTO_STEP;
 use intelligent_sight_lib::{
-    get_image, initialize_camera, uninitialize_camera, FlipFlag, SharedBuffer,
+    get_image, initialize_camera, uninitialize_camera, FlipFlag, SharedBuffer, UnifiedTrait,
 };
 use log::{debug, info, log_enabled, warn};
 use opencv::{self as cv, prelude::*};
+use std::os::raw::c_void;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -70,7 +72,7 @@ impl Processor for CamThread {
     fn start_processor(&self) -> thread::JoinHandle<()> {
         let stop_sig = self.stop_sig.clone();
         let shared_buffer = self.shared_buffer.clone();
-
+        cv::highgui::named_window("CamThread", 1).unwrap();
         thread::spawn(move || {
             let mut cnt = 0;
             let mut start = std::time::Instant::now();
@@ -83,7 +85,18 @@ impl Processor for CamThread {
                         break;
                     }
                 }
-                // let mat =
+                let mat = unsafe {
+                    Mat::new_rows_cols_with_data_unsafe(
+                        480,
+                        640,
+                        cv::core::CV_8UC3,
+                        lock.host() as *mut c_void,
+                        480 * 3 * std::mem::size_of::<u8>(),
+                    )
+                    .unwrap()
+                };
+                cv::highgui::imshow("CamThread", &mat).unwrap();
+                cv::highgui::wait_key(10).unwrap();
                 drop(lock);
 
                 cnt += 1;
