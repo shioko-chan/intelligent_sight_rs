@@ -9,4 +9,7 @@ edition = "2021"
 intelligent_sight_lib = { path = "../intelligent_sight_lib" }
 anyhow = "1.0.79"
 log = "0.4.21"
-opencv = "0.91.3"
+opencv = { version = "0.91.3", optional = true }
+
+[features]
+visualize = ["opencv"]

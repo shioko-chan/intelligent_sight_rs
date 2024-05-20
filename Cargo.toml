@@ -10,7 +10,7 @@ authors = ["Aya <shioriaya@foxmail.com>"]
 [dependencies]
 anyhow = "1.0.79"
 ctrlc = "3.4.4"
-threads = { path = "threads" }
+threads = { path = "threads", features = [] }
 env_logger = "0.11.3"
 log = "0.4.21"
 

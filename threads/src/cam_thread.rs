@@ -5,8 +5,10 @@ use intelligent_sight_lib::{
     get_image, initialize_camera, uninitialize_camera, FlipFlag, SharedBuffer, UnifiedTrait,
 };
 use log::{debug, info, log_enabled, warn};
+
+#[cfg(feature = "visualize")]
 use opencv::{self as cv, prelude::*};
-use std::os::raw::c_void;
+
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -77,6 +79,7 @@ impl Processor for CamThread {
             let mut cnt = 0;
             let mut start = std::time::Instant::now();
 
+            #[cfg(feature = "visualize")]
             cv::highgui::named_window("CamThread", cv::highgui::WINDOW_AUTOSIZE).unwrap();
             while stop_sig.load(Ordering::Relaxed) == false {
                 let mut lock = shared_buffer.write();
@@ -86,21 +89,23 @@ impl Processor for CamThread {
                     break;
                 }
 
-                let mat = unsafe {
-                    Mat::new_rows_cols_with_data_unsafe(
-                        lock.height as i32,
-                        lock.width as i32,
-                        cv::core::CV_8UC3,
-                        lock.host() as *mut c_void,
-                        lock.width as usize * 3 * std::mem::size_of::<u8>(),
-                    )
-                    .unwrap()
-                };
-
-                cv::highgui::imshow("CamThread", &mat).unwrap();
-                let ret = cv::highgui::wait_key(1).unwrap();
-                if ret == 'q' as i32 {
-                    break;
+                #[cfg(feature = "visualize")]
+                {
+                    let mat = unsafe {
+                        Mat::new_rows_cols_with_data_unsafe(
+                            lock.height as i32,
+                            lock.width as i32,
+                            cv::core::CV_8UC3,
+                            lock.host() as *mut std::ffi::c_void,
+                            lock.width as usize * 3 * std::mem::size_of::<u8>(),
+                        )
+                        .unwrap()
+                    };
+                    cv::highgui::imshow("CamThread", &mat).unwrap();
+                    let ret = cv::highgui::wait_key(1).unwrap();
+                    if ret == 'q' as i32 {
+                        break;
+                    }
                 }
 
                 drop(lock);
