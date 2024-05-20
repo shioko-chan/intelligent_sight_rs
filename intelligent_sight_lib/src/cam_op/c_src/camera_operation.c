@@ -58,7 +58,7 @@ uint8_t initialize_camera(uint8_t wanted_cam_number, uint32_t *image_width, uint
         // printf("Exposure time range: %f - %f\n", from_value, to_value);
         // printf("Current exposure line time: %f\n", exposure_line_time);
 
-        check_status_retry(CameraSetExposureTime(CAMERA_HANDLERS[i], 4000.0));
+        check_status_retry(CameraSetExposureTime(CAMERA_HANDLERS[i], 1000.0));
         printf("SDK: Finish setting exposure time 4ms\n");
 
         // double exposure_time;

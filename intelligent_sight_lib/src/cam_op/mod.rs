@@ -110,12 +110,16 @@ mod tests {
 
         let mut image = Image::new(buffer_width[0], buffer_height[0]).unwrap();
 
+        let vec: Vec<u8> = image.iter().map(|num| *num).collect();
+
         if let Err(err) = get_image(0, &mut image, FlipFlag::None) {
             println!("err: {}", err);
             panic!("get_image failed");
         }
 
         println!("height: {}, width: {}", image.height, image.width);
+
+        assert!(!image.iter().zip(vec.iter()).all(|(a, b)| *a == *b));
 
         if let Err(err) = uninitialize_camera() {
             panic!("uninitialize_camera failed err: {}", err);

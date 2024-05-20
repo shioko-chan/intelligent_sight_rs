@@ -1,6 +1,6 @@
 use crate::thread_trait::Processor;
 use anyhow::{anyhow, Result};
-use cv::core::CV_AUTO_STEP;
+
 use intelligent_sight_lib::{
     get_image, initialize_camera, uninitialize_camera, FlipFlag, SharedBuffer, UnifiedTrait,
 };
@@ -72,31 +72,37 @@ impl Processor for CamThread {
     fn start_processor(&self) -> thread::JoinHandle<()> {
         let stop_sig = self.stop_sig.clone();
         let shared_buffer = self.shared_buffer.clone();
-        cv::highgui::named_window("CamThread", 1).unwrap();
+
         thread::spawn(move || {
             let mut cnt = 0;
             let mut start = std::time::Instant::now();
+
+            cv::highgui::named_window("CamThread", cv::highgui::WINDOW_AUTOSIZE).unwrap();
             while stop_sig.load(Ordering::Relaxed) == false {
                 let mut lock = shared_buffer.write();
-                match get_image(0, &mut lock, FlipFlag::None) {
-                    Ok(_) => {}
-                    Err(err) => {
-                        warn!("err: {}", err);
-                        break;
-                    }
+
+                if let Err(err) = get_image(0, &mut lock, FlipFlag::None) {
+                    warn!("err: {}", err);
+                    break;
                 }
+
                 let mat = unsafe {
                     Mat::new_rows_cols_with_data_unsafe(
-                        480,
-                        640,
+                        lock.height as i32,
+                        lock.width as i32,
                         cv::core::CV_8UC3,
                         lock.host() as *mut c_void,
-                        480 * 3 * std::mem::size_of::<u8>(),
+                        lock.width as usize * 3 * std::mem::size_of::<u8>(),
                     )
                     .unwrap()
                 };
+
                 cv::highgui::imshow("CamThread", &mat).unwrap();
-                cv::highgui::wait_key(10).unwrap();
+                let ret = cv::highgui::wait_key(1).unwrap();
+                if ret == 'q' as i32 {
+                    break;
+                }
+
                 drop(lock);
 
                 cnt += 1;
