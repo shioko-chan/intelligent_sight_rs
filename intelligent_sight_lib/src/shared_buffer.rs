@@ -37,6 +37,7 @@ impl<T> Drop for SharedBufferLock<'_, T> {
 struct BufferInfo {
     lfu: usize,
     occupied: bool,
+    is_new: bool,
 }
 
 impl Default for BufferInfo {
@@ -44,6 +45,7 @@ impl Default for BufferInfo {
         BufferInfo {
             lfu: 0,
             occupied: false,
+            is_new: false,
         }
     }
 }
@@ -53,6 +55,7 @@ impl Clone for BufferInfo {
         BufferInfo {
             lfu: self.lfu,
             occupied: self.occupied,
+            is_new: self.is_new,
         }
     }
 }
@@ -60,7 +63,6 @@ impl Clone for BufferInfo {
 impl Copy for BufferInfo {}
 
 pub struct SharedBuffer<T> {
-    message_cnt: Arc<Mutex<usize>>,
     message_cond: Arc<Condvar>,
     info: Mutex<Vec<BufferInfo>>,
     buffers: Vec<Mutex<T>>,
@@ -73,7 +75,6 @@ impl<T> SharedBuffer<T> {
             vec.push(Mutex::new(f()?));
         }
         Ok(SharedBuffer {
-            message_cnt: Arc::new(Mutex::new(0)),
             message_cond: Arc::new(Condvar::new()),
             info: Mutex::new(vec![BufferInfo::default(); reader_writer_cnt]),
             buffers: vec,
@@ -89,26 +90,25 @@ impl<T> SharedBuffer<T> {
     }
 
     #[inline]
-    fn get_message_cnt(&self) -> MutexGuard<usize> {
-        match self.message_cnt.lock() {
-            Ok(cnt) => cnt,
-            Err(poisoned) => poisoned.into_inner(),
-        }
+    fn check_condition(&self, info: &MutexGuard<Vec<BufferInfo>>) -> bool {
+        info.iter()
+            .fold(0, |acc, x| acc + if x.is_new { 1 } else { 0 })
+            != 0
     }
 
     #[inline]
-    fn get_read_index(&self) -> usize {
-        let mut message_cnt = self.get_message_cnt();
-        while *message_cnt == 0 {
-            message_cnt = self
-                .message_cond
-                .wait(message_cnt)
-                .unwrap_or_else(|x| x.into_inner());
-        }
-        *message_cnt -= 1;
-        drop(message_cnt);
-
+    fn get_read_index(&self) -> Option<usize> {
         let mut info = self.get_buffer_info();
+        if !self.check_condition(&info) {
+            info = self
+                .message_cond
+                .wait(info)
+                .unwrap_or_else(|x| x.into_inner());
+            if !self.check_condition(&info) {
+                return None;
+            }
+        }
+
         let index = info
             .iter()
             .enumerate()
@@ -116,8 +116,9 @@ impl<T> SharedBuffer<T> {
             .min_by_key(|x| x.1.lfu)
             .unwrap()
             .0;
+        info[index].is_new = false;
         info[index].occupied = true;
-        index
+        Some(index)
     }
 
     #[inline]
@@ -142,14 +143,14 @@ impl<T> SharedBuffer<T> {
         }
     }
 
-    pub fn read(&self) -> SharedBufferLock<T> {
-        let index = self.get_read_index();
-        SharedBufferLock {
+    pub fn read(&self) -> Option<SharedBufferLock<T>> {
+        let index = self.get_read_index()?;
+        Some(SharedBufferLock {
             _id: index,
             is_read: true,
             lock: self.get_buffer(index),
             shared_buffer: self,
-        }
+        })
     }
 
     fn read_finish(&self, id: usize) {
@@ -172,11 +173,32 @@ impl<T> SharedBuffer<T> {
         info.iter_mut().for_each(|x| x.lfu += 1);
         info[id].lfu = 0;
         info[id].occupied = false;
+        info[id].is_new = true;
         drop(info);
 
-        let mut message_cnt = self.get_message_cnt();
-        *message_cnt += 1;
         self.message_cond.notify_one();
+    }
+}
+
+pub struct Reader<T>(Arc<SharedBuffer<T>>);
+impl<T> Reader<T> {
+    pub fn read(&self) -> Option<SharedBufferLock<'_, T>> {
+        self.0.read()
+    }
+}
+
+pub struct Writer<T>(Arc<SharedBuffer<T>>);
+impl<T> Writer<T> {
+    pub fn new(reader_writer_cnt: usize, f: impl Fn() -> Result<T>) -> Result<Self> {
+        Ok(Self(Arc::new(SharedBuffer::new(reader_writer_cnt, f)?)))
+    }
+
+    pub fn get_reader(&self) -> Reader<T> {
+        Reader(self.0.clone())
+    }
+
+    pub fn write(&self) -> SharedBufferLock<'_, T> {
+        self.0.write()
     }
 }
 
@@ -206,7 +228,7 @@ mod tests {
         });
         handle1.join().unwrap();
         handle2.join().unwrap();
-        assert_eq!(n - 1, *buffer.read());
+        assert_eq!(n - 1, *buffer.read().unwrap());
     }
 
     #[test]
@@ -238,7 +260,7 @@ mod tests {
         handle1.join().unwrap();
         handle2.join().unwrap();
         handle3.join().unwrap();
-        let latest = buffer.read();
+        let latest = buffer.read().unwrap();
         assert!(n - 1 == *latest || n == *latest);
     }
 }

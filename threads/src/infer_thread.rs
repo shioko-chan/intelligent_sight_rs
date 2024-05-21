@@ -2,7 +2,7 @@ use crate::thread_trait::Processor;
 use anyhow::Result;
 use intelligent_sight_lib::{
     convert_rgb888_3dtensor, create_context, create_engine, infer, release_resources, set_input,
-    set_output, ImageBuffer, SharedBuffer, TensorBuffer,
+    set_output, ImageBuffer, Reader, TensorBuffer, Writer,
 };
 use log::{debug, error, info, log_enabled, trace};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -10,8 +10,8 @@ use std::sync::Arc;
 use std::thread;
 
 pub struct TrtThread {
-    input_buffer: Arc<SharedBuffer<ImageBuffer>>,
-    output_buffer: Arc<SharedBuffer<TensorBuffer>>,
+    input_buffer: Reader<ImageBuffer>,
+    output_buffer: Writer<TensorBuffer>,
     stop_sig: Arc<AtomicBool>,
     #[cfg(feature = "visualize")]
     image_tx: std::sync::mpsc::Sender<ImageBuffer>,
@@ -28,8 +28,8 @@ impl Drop for TrtThread {
 impl Processor for TrtThread {
     type Output = TensorBuffer;
 
-    fn get_output_buffer(&self) -> Arc<SharedBuffer<Self::Output>> {
-        self.output_buffer.clone()
+    fn get_output_buffer(&self) -> Reader<Self::Output> {
+        self.output_buffer.get_reader()
     }
 
     fn start_processor(self) -> thread::JoinHandle<()> {
@@ -54,7 +54,15 @@ impl Processor for TrtThread {
             let mut cnt = 0;
             let mut start = std::time::Instant::now();
             while self.stop_sig.load(Ordering::Relaxed) == false {
-                let mut lock_input = self.input_buffer.read();
+                let mut lock_input = match self.input_buffer.read() {
+                    Some(input) => input,
+                    None => {
+                        if self.stop_sig.load(Ordering::Relaxed) == false {
+                            error!("InferThread: Failed to get input");
+                        }
+                        break;
+                    }
+                };
                 #[cfg(feature = "visualize")]
                 {
                     if let Err(err) = self.image_tx.send(lock_input.clone()) {
@@ -106,7 +114,7 @@ impl Processor for TrtThread {
 
 impl TrtThread {
     pub fn new(
-        input_buffer: Arc<SharedBuffer<ImageBuffer>>,
+        input_buffer: Reader<ImageBuffer>,
         stop_sig: Arc<AtomicBool>,
         #[cfg(feature = "visualize")] image_tx: std::sync::mpsc::Sender<ImageBuffer>,
     ) -> Result<Self> {
@@ -115,9 +123,7 @@ impl TrtThread {
         info!("InferThread: output buffer size: {:?}", vec![1, 32, 8400]);
         Ok(Self {
             input_buffer,
-            output_buffer: Arc::new(SharedBuffer::new(4, || {
-                TensorBuffer::new(vec![1, 32, 8400])
-            })?),
+            output_buffer: Writer::new(4, || TensorBuffer::new(vec![1, 32, 8400]))?,
             stop_sig,
             #[cfg(feature = "visualize")]
             image_tx,

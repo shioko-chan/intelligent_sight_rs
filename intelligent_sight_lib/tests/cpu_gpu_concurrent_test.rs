@@ -16,7 +16,7 @@ fn concurrent_rw_test() {
         let mut out_buffer = TensorBuffer::new(vec![1, 32, 8400]).unwrap();
         set_output(&mut out_buffer).unwrap();
         for _ in 0..1000 {
-            let mut lock = shared_buffer.read();
+            let mut lock = shared_buffer.read().unwrap();
             set_input(&mut lock).unwrap();
             infer().unwrap();
         }
