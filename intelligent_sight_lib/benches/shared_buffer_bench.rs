@@ -1,9 +1,9 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use intelligent_sight_lib::{Image, SharedBuffer};
+use intelligent_sight_lib::{ImageBuffer, SharedBuffer};
 use std::sync::Arc;
 use std::thread;
 
-fn read_write(b1: Arc<SharedBuffer<Image>>, b2: Arc<SharedBuffer<Image>>) {
+fn read_write(b1: Arc<SharedBuffer<ImageBuffer>>, b2: Arc<SharedBuffer<ImageBuffer>>) {
     criterion::black_box({
         let h1 = thread::spawn(move || {
             for _ in 0..100 {
@@ -24,12 +24,12 @@ fn read_write(b1: Arc<SharedBuffer<Image>>, b2: Arc<SharedBuffer<Image>>) {
 
 fn read_write_bench(c: &mut Criterion) {
     let buffer_size_range = 2..5;
-    let buffer_vec: Vec<Arc<SharedBuffer<Image>>> = buffer_size_range
+    let buffer_vec: Vec<Arc<SharedBuffer<ImageBuffer>>> = buffer_size_range
         .clone()
         .into_iter()
         .map(|buffer_len| {
             Arc::new(
-                SharedBuffer::new(buffer_len, || Image::new(1280, 1024))
+                SharedBuffer::new(buffer_len, || ImageBuffer::new(1280, 1024))
                     .expect("fail to create sharedbuffer"),
             )
         })
@@ -49,7 +49,7 @@ fn read_write_bench(c: &mut Criterion) {
     c.bench_function("allocation bench", |b| {
         b.iter(|| {
             criterion::black_box({
-                SharedBuffer::new(4, || Image::new(1280, 1024))
+                SharedBuffer::new(4, || ImageBuffer::new(1280, 1024))
                     .expect("fail to allocate sharedbuffer");
             });
         });

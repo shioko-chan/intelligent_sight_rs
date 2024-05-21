@@ -16,7 +16,7 @@ pub use cuda_op::{
 };
 // #[cfg(target_os = "windows")]
 pub use cuda_op::{cuda_free_host, cuda_malloc, cuda_malloc_host};
-pub use data_structures::{Image, Tensor};
+pub use data_structures::{ImageBuffer, TensorBuffer};
 pub use shared_buffer::SharedBuffer;
 pub use trt_op::{
     create_context, create_engine, infer, postprocess, postprocess_destroy, postprocess_init,

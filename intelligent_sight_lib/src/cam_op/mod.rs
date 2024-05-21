@@ -1,4 +1,4 @@
-use crate::{Image, UnifiedTrait};
+use crate::{ImageBuffer, UnifiedTrait};
 use anyhow::Result;
 
 mod err_name;
@@ -60,7 +60,7 @@ pub fn initialize_camera(
     }
 }
 
-pub fn get_image(camera_index: u8, image: &mut Image, flip_flag: FlipFlag) -> Result<()> {
+pub fn get_image(camera_index: u8, image: &mut ImageBuffer, flip_flag: FlipFlag) -> Result<()> {
     match unsafe {
         cam_op_ffi::get_image(
             camera_index,
@@ -82,7 +82,6 @@ pub fn get_image(camera_index: u8, image: &mut Image, flip_flag: FlipFlag) -> Re
 }
 
 pub fn uninitialize_camera() -> Result<()> {
-    println!("uninitialize");
     match unsafe { cam_op_ffi::uninitialize_camera() } {
         0 => Ok(()),
         err_code => Err(anyhow::anyhow!(format!(
@@ -108,7 +107,7 @@ mod tests {
             panic!("initialize_camera failed err: {}", err);
         }
 
-        let mut image = Image::new(buffer_width[0], buffer_height[0]).unwrap();
+        let mut image = ImageBuffer::new(buffer_width[0], buffer_height[0]).unwrap();
 
         let vec: Vec<u8> = image.iter().map(|num| *num).collect();
 

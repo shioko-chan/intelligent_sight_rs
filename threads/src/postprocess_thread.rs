@@ -1,17 +1,22 @@
 use crate::thread_trait::Processor;
 use anyhow::Result;
 use intelligent_sight_lib::{
-    postprocess, postprocess_destroy, postprocess_init, SharedBuffer, Tensor,
+    postprocess, postprocess_destroy, postprocess_init, SharedBuffer, TensorBuffer,
 };
 use log::{debug, info, log_enabled, warn};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 
+#[cfg(feature = "visualize")]
+use std::sync::mpsc;
+
 pub struct PostprocessThread {
-    input_buffer: Arc<SharedBuffer<Tensor>>,
-    output_buffer: Arc<SharedBuffer<Tensor>>,
+    input_buffer: Arc<SharedBuffer<TensorBuffer>>,
+    output_buffer: Arc<SharedBuffer<TensorBuffer>>,
     stop_sig: Arc<AtomicBool>,
+    #[cfg(feature = "visualize")]
+    detection_tx: std::sync::mpsc::Sender<TensorBuffer>,
 }
 
 impl Drop for PostprocessThread {
@@ -23,29 +28,44 @@ impl Drop for PostprocessThread {
 }
 
 impl Processor for PostprocessThread {
-    type Output = Tensor;
+    type Output = TensorBuffer;
 
     fn get_output_buffer(&self) -> Arc<SharedBuffer<Self::Output>> {
         self.output_buffer.clone()
     }
 
-    fn start_processor(&self) -> thread::JoinHandle<()> {
-        let input_buffer = self.input_buffer.clone();
-        let output_buffer = self.output_buffer.clone();
-        let stop_sig = self.stop_sig.clone();
-        let mut cnt = 0;
-        let mut start = std::time::Instant::now();
-
+    fn start_processor(self) -> thread::JoinHandle<()> {
         thread::spawn(move || {
-            while stop_sig.load(Ordering::Relaxed) == false {
-                let mut lock_input = input_buffer.read();
-                let mut lock_output = output_buffer.write();
-                if let Err(err) = postprocess(&mut lock_input, &mut lock_output) {
-                    warn!("PostprocessThread: Failed to postprocess: {}", err);
-                    break;
+            let mut cnt = 0;
+            let mut start = std::time::Instant::now();
+
+            while self.stop_sig.load(Ordering::Relaxed) == false {
+                let mut lock_input = self.input_buffer.read();
+                let mut lock_output = self.output_buffer.write();
+
+                match postprocess(&mut lock_input, &mut lock_output) {
+                    #[cfg(feature = "visualize")]
+                    Ok(cnt) => {
+                        let mut det = lock_output.clone();
+                        det.resize(vec![cnt as usize, 16]);
+                        if let Err(err) = self.detection_tx.send(det) {
+                            if self.stop_sig.load(Ordering::Relaxed) == false {
+                                warn!("PostprocessThread: Failed to send detection: {}", err);
+                            }
+                            break;
+                        }
+                    }
+                    #[cfg(not(feature = "visualize"))]
+                    Ok(_) => {}
+                    Err(err) => {
+                        warn!("PostprocessThread: Failed to postprocess: {}", err);
+                        break;
+                    }
                 }
+
                 drop(lock_input);
                 drop(lock_output);
+
                 if log_enabled!(log::Level::Debug) {
                     cnt += 1;
                     if cnt == 10 {
@@ -57,26 +77,27 @@ impl Processor for PostprocessThread {
                     }
                 }
             }
-            stop_sig.store(true, Ordering::Relaxed);
+            self.stop_sig.store(true, Ordering::Relaxed);
         })
     }
 }
 
 impl PostprocessThread {
-    pub fn new(input_buffer: Arc<SharedBuffer<Tensor>>, stop_sig: Arc<AtomicBool>) -> Result<Self> {
+    pub fn new(
+        input_buffer: Arc<SharedBuffer<TensorBuffer>>,
+        stop_sig: Arc<AtomicBool>,
+        #[cfg(feature = "visualize")] detection_tx: mpsc::Sender<TensorBuffer>,
+    ) -> Result<Self> {
         postprocess_init()?;
-        let read_lock = input_buffer.read();
-        info!(
-            "PostprocessThread: input buffer size: {:?}",
-            read_lock.size()
-        );
+
         info!("PostprocessThread: output buffer size: {:?}", vec![25, 16]);
 
-        drop(read_lock);
         Ok(Self {
             input_buffer,
-            output_buffer: Arc::new(SharedBuffer::new(4, || Tensor::new(vec![25, 16]))?),
+            output_buffer: Arc::new(SharedBuffer::new(4, || TensorBuffer::new(vec![25, 16]))?),
             stop_sig,
+            #[cfg(feature = "visualize")]
+            detection_tx,
         })
     }
 }

@@ -1,5 +1,5 @@
 pub(crate) mod err_code;
-use crate::{Image, Tensor, UnifiedTrait};
+use crate::{ImageBuffer, TensorBuffer, UnifiedTrait};
 use anyhow::{anyhow, Result};
 use err_code::CUDA_ERR_NAME;
 use std::mem;
@@ -108,7 +108,10 @@ pub fn cuda_free_host<T>(ptr: *mut T) -> Result<()> {
     exec_and_check(|| Ok(unsafe { cuda_op_ffi::cuda_free_host(ptr as *mut u8) }))
 }
 
-pub fn convert_rgb888_3dtensor(input_image: &mut Image, output_tensor: &mut Tensor) -> Result<()> {
+pub fn convert_rgb888_3dtensor(
+    input_image: &mut ImageBuffer,
+    output_tensor: &mut TensorBuffer,
+) -> Result<()> {
     exec_and_check(|| {
         Ok(unsafe {
             cuda_op_ffi::convert_rgb888_3dtensor(
@@ -180,11 +183,11 @@ mod tests {
 
     #[test]
     fn test_convert_img_tensor() {
-        let mut image = Image::new(640, 480).unwrap();
+        let mut image = ImageBuffer::new(640, 480).unwrap();
         for data in image.iter_mut() {
             *data = 255;
         }
-        let mut tensor = Tensor::new(vec![1, 3, 640, 640]).unwrap();
+        let mut tensor = TensorBuffer::new(vec![1, 3, 640, 640]).unwrap();
 
         convert_rgb888_3dtensor(&mut image, &mut tensor).unwrap();
         tensor.to_host().unwrap();

@@ -2,7 +2,7 @@ use crate::thread_trait::Processor;
 use anyhow::Result;
 use intelligent_sight_lib::{
     convert_rgb888_3dtensor, create_context, create_engine, infer, release_resources, set_input,
-    set_output, Image, SharedBuffer, Tensor,
+    set_output, ImageBuffer, SharedBuffer, TensorBuffer,
 };
 use log::{debug, info, log_enabled, trace, warn};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -10,9 +10,11 @@ use std::sync::Arc;
 use std::thread;
 
 pub struct TrtThread {
-    input_buffer: Arc<SharedBuffer<Image>>,
-    output_buffer: Arc<SharedBuffer<Tensor>>,
+    input_buffer: Arc<SharedBuffer<ImageBuffer>>,
+    output_buffer: Arc<SharedBuffer<TensorBuffer>>,
     stop_sig: Arc<AtomicBool>,
+    #[cfg(feature = "visualize")]
+    image_tx: std::sync::mpsc::Sender<ImageBuffer>,
 }
 
 impl Drop for TrtThread {
@@ -24,32 +26,24 @@ impl Drop for TrtThread {
 }
 
 impl Processor for TrtThread {
-    type Output = Tensor;
+    type Output = TensorBuffer;
 
     fn get_output_buffer(&self) -> Arc<SharedBuffer<Self::Output>> {
         self.output_buffer.clone()
     }
 
-    fn start_processor(&self) -> thread::JoinHandle<()> {
-        let input_buffer = self.input_buffer.clone();
-        let output_buffer = self.output_buffer.clone();
-        let stop_sig = self.stop_sig.clone();
-
+    fn start_processor(self) -> thread::JoinHandle<()> {
         thread::spawn(move || {
             if let Err(err) = create_context() {
-                warn!(
-                    "InferThread: failed create context, due to error: {}",
-                    err
-                );
-                stop_sig.store(true, Ordering::Relaxed);
+                warn!("InferThread: failed create context, due to error: {}", err);
+                self.stop_sig.store(true, Ordering::Relaxed);
                 return;
             }
-            let mut cnt = 0;
-            let mut start = std::time::Instant::now();
-            let mut engine_input_buffer = Tensor::new(vec![1, 3, 640, 640]).unwrap();
+
+            let mut engine_input_buffer = TensorBuffer::new(vec![1, 3, 640, 640]).unwrap();
             if let Err(err) = set_input(&mut engine_input_buffer) {
                 warn!("InferThread: set input buffer failed, error {}", err);
-                stop_sig.store(true, Ordering::Relaxed);
+                self.stop_sig.store(true, Ordering::Relaxed);
                 return;
             }
             info!(
@@ -57,8 +51,22 @@ impl Processor for TrtThread {
                 engine_input_buffer.size(),
             );
 
-            while stop_sig.load(Ordering::Relaxed) == false {
-                let mut lock_input = input_buffer.read();
+            let mut cnt = 0;
+            let mut start = std::time::Instant::now();
+            while self.stop_sig.load(Ordering::Relaxed) == false {
+                let mut lock_input = self.input_buffer.read();
+                #[cfg(feature = "visualize")]
+                {
+                    if let Err(err) = self.image_tx.send(lock_input.clone()) {
+                        if self.stop_sig.load(Ordering::Relaxed) == false {
+                            warn!(
+                                "InferThread: send image to display thread failed, error {}",
+                                err
+                            );
+                        }
+                        break;
+                    }
+                }
                 if let Err(err) = convert_rgb888_3dtensor(&mut lock_input, &mut engine_input_buffer)
                 {
                     warn!("InferThread: convert image to tensor failed {}", err);
@@ -70,7 +78,7 @@ impl Processor for TrtThread {
                     trace!("InferThread: finish convert_rgb888_3dtensor");
                 }
 
-                let mut lock_output = output_buffer.write();
+                let mut lock_output = self.output_buffer.write();
                 if let Err(err) = set_output(&mut lock_output) {
                     warn!("InferThread: set output buffer failed, error {}", err);
                     break;
@@ -91,27 +99,28 @@ impl Processor for TrtThread {
                     }
                 }
             }
-            stop_sig.store(true, Ordering::Relaxed);
+            self.stop_sig.store(true, Ordering::Relaxed);
         })
     }
 }
 
 impl TrtThread {
-    pub fn new(input_buffer: Arc<SharedBuffer<Image>>, stop_sig: Arc<AtomicBool>) -> Result<Self> {
+    pub fn new(
+        input_buffer: Arc<SharedBuffer<ImageBuffer>>,
+        stop_sig: Arc<AtomicBool>,
+        #[cfg(feature = "visualize")] image_tx: std::sync::mpsc::Sender<ImageBuffer>,
+    ) -> Result<Self> {
         create_engine("model.trt", "images", "output0", 640, 640)?;
-
-        let read_lock = input_buffer.read();
-        info!(
-            "InferThread: input buffer size: width: {}, height: {}",
-            read_lock.width, read_lock.height
-        );
-        drop(read_lock);
 
         info!("InferThread: output buffer size: {:?}", vec![1, 32, 8400]);
         Ok(Self {
             input_buffer,
-            output_buffer: Arc::new(SharedBuffer::new(4, || Tensor::new(vec![1, 32, 8400]))?),
+            output_buffer: Arc::new(SharedBuffer::new(4, || {
+                TensorBuffer::new(vec![1, 32, 8400])
+            })?),
             stop_sig,
+            #[cfg(feature = "visualize")]
+            image_tx,
         })
     }
 }

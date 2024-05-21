@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::{
     ops::{Deref, DerefMut},
-    sync::{Mutex, MutexGuard},
+    sync::{Arc, Condvar, Mutex, MutexGuard},
 };
 
 pub struct SharedBufferLock<'a, T> {
@@ -34,11 +34,6 @@ impl<T> Drop for SharedBufferLock<'_, T> {
     }
 }
 
-pub struct SharedBuffer<T> {
-    info: Mutex<Vec<BufferInfo>>,
-    buffers: Vec<Mutex<T>>,
-}
-
 struct BufferInfo {
     lfu: usize,
     occupied: bool,
@@ -64,6 +59,13 @@ impl Clone for BufferInfo {
 
 impl Copy for BufferInfo {}
 
+pub struct SharedBuffer<T> {
+    message_cnt: Arc<Mutex<usize>>,
+    message_cond: Arc<Condvar>,
+    info: Mutex<Vec<BufferInfo>>,
+    buffers: Vec<Mutex<T>>,
+}
+
 impl<T> SharedBuffer<T> {
     pub fn new(reader_writer_cnt: usize, f: impl Fn() -> Result<T>) -> Result<Self> {
         let mut vec = Vec::with_capacity(reader_writer_cnt);
@@ -71,6 +73,8 @@ impl<T> SharedBuffer<T> {
             vec.push(Mutex::new(f()?));
         }
         Ok(SharedBuffer {
+            message_cnt: Arc::new(Mutex::new(0)),
+            message_cond: Arc::new(Condvar::new()),
             info: Mutex::new(vec![BufferInfo::default(); reader_writer_cnt]),
             buffers: vec,
         })
@@ -85,7 +89,25 @@ impl<T> SharedBuffer<T> {
     }
 
     #[inline]
+    fn get_message_cnt(&self) -> MutexGuard<usize> {
+        match self.message_cnt.lock() {
+            Ok(cnt) => cnt,
+            Err(poisoned) => poisoned.into_inner(),
+        }
+    }
+
+    #[inline]
     fn get_read_index(&self) -> usize {
+        let mut message_cnt = self.get_message_cnt();
+        while *message_cnt == 0 {
+            message_cnt = self
+                .message_cond
+                .wait(message_cnt)
+                .unwrap_or_else(|x| x.into_inner());
+        }
+        *message_cnt -= 1;
+        drop(message_cnt);
+
         let mut info = self.get_buffer_info();
         let index = info
             .iter()
@@ -150,6 +172,11 @@ impl<T> SharedBuffer<T> {
         info.iter_mut().for_each(|x| x.lfu += 1);
         info[id].lfu = 0;
         info[id].occupied = false;
+        drop(info);
+
+        let mut message_cnt = self.get_message_cnt();
+        *message_cnt += 1;
+        self.message_cond.notify_one();
     }
 }
 
@@ -166,7 +193,7 @@ mod tests {
         let share_buffer2 = share_buffer1.clone();
         let buffer = share_buffer2.clone();
         let handle1 = thread::spawn(move || {
-            for _ in 0..n {
+            for _ in 0..n - 1 {
                 #[allow(unused)]
                 let read_buffer = share_buffer1.read();
             }
@@ -179,7 +206,7 @@ mod tests {
         });
         handle1.join().unwrap();
         handle2.join().unwrap();
-        assert_eq!(n - 1, *buffer.read().lock);
+        assert_eq!(n - 1, *buffer.read());
     }
 
     #[test]
@@ -212,6 +239,6 @@ mod tests {
         handle2.join().unwrap();
         handle3.join().unwrap();
         let latest = buffer.read();
-        assert!(n - 1 == *latest.lock || n == *latest.lock);
+        assert!(n - 1 == *latest || n == *latest);
     }
 }

@@ -4,8 +4,12 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
+
 use thread_trait::Processor;
 use threads::*;
+
+#[cfg(feature = "visualize")]
+use std::sync::mpsc;
 
 fn set_ctrlc(stop_sig: Arc<AtomicBool>) {
     ctrlc::set_handler(move || {
@@ -30,19 +34,31 @@ fn main() {
     };
     info!("Main: Camera thread initialized");
 
-    let infer_thread =
-        match infer_thread::TrtThread::new(camera_thread.get_output_buffer(), stop_sig.clone()) {
-            Ok(infer_thread) => infer_thread,
-            Err(err) => {
-                warn!("Main: Failed to initialize infer thread: {}", err);
-                return;
-            }
-        };
+    #[cfg(feature = "visualize")]
+    let (tx, rx_img) = mpsc::channel();
+
+    let infer_thread = match infer_thread::TrtThread::new(
+        camera_thread.get_output_buffer(),
+        stop_sig.clone(),
+        #[cfg(feature = "visualize")]
+        tx,
+    ) {
+        Ok(infer_thread) => infer_thread,
+        Err(err) => {
+            warn!("Main: Failed to initialize infer thread: {}", err);
+            return;
+        }
+    };
     info!("Main: Infer thread initialized");
+
+    #[cfg(feature = "visualize")]
+    let (tx, rx_det) = mpsc::channel();
 
     let postprocess_thread = match postprocess_thread::PostprocessThread::new(
         infer_thread.get_output_buffer(),
         stop_sig.clone(),
+        #[cfg(feature = "visualize")]
+        tx,
     ) {
         Ok(postprocess_thread) => postprocess_thread,
         Err(err) => {
@@ -50,6 +66,9 @@ fn main() {
             return;
         }
     };
+
+    #[cfg(feature = "visualize")]
+    let display_thread = display_thread::DisplayThread::new(rx_img, rx_det, stop_sig.clone());
 
     set_ctrlc(stop_sig.clone());
 
@@ -62,9 +81,19 @@ fn main() {
     let postprocess_thread_handle = postprocess_thread.start_processor();
     info!("Main: Postprocess thread started");
 
+    #[cfg(feature = "visualize")]
+    let display_thread_handle = {
+        let handle = display_thread.run();
+        info!("Main: Display thread started");
+        handle
+    };
+
     camera_thread_handle.join().unwrap();
     infer_thread_handle.join().unwrap();
     postprocess_thread_handle.join().unwrap();
+
+    #[cfg(feature = "visualize")]
+    display_thread_handle.join().unwrap();
 
     info!("Main: ending...");
 }

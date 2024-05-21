@@ -1,5 +1,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use intelligent_sight_lib::{get_image, initialize_camera, uninitialize_camera, FlipFlag, Image};
+use intelligent_sight_lib::{
+    get_image, initialize_camera, uninitialize_camera, FlipFlag, ImageBuffer,
+};
 
 fn cam_bench(c: &mut Criterion) {
     let mut buffer_width = vec![0u32; 1];
@@ -13,7 +15,7 @@ fn cam_bench(c: &mut Criterion) {
     }
 
     c.bench_function("get frame", |b| {
-        let mut image = Image::new(buffer_width[0], buffer_height[0]).unwrap();
+        let mut image = ImageBuffer::new(buffer_width[0], buffer_height[0]).unwrap();
         b.iter(|| {
             criterion::black_box({
                 get_image(0, &mut image, FlipFlag::None).unwrap();

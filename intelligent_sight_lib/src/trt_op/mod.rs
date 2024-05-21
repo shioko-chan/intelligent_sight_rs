@@ -121,7 +121,7 @@ pub fn postprocess_destroy() -> Result<()> {
 
 #[cfg(test)]
 mod test {
-    use crate::Tensor;
+    use crate::TensorBuffer;
 
     use super::*;
 
@@ -130,8 +130,8 @@ mod test {
         create_engine("../model.trt", "images", "output0", 640, 640).unwrap();
         create_context().unwrap();
 
-        let mut input = Tensor::new(vec![1, 3, 640, 640]).unwrap();
-        let mut output = Tensor::new(vec![1, 32, 8400]).unwrap();
+        let mut input = TensorBuffer::new(vec![1, 3, 640, 640]).unwrap();
+        let mut output = TensorBuffer::new(vec![1, 32, 8400]).unwrap();
         set_input(&mut input).unwrap();
         set_output(&mut output).unwrap();
 
@@ -168,8 +168,8 @@ mod test {
     fn test_postprocess() {
         postprocess_init().unwrap();
 
-        let mut input_buffer = Tensor::new(vec![1, 32, 8400]).unwrap();
-        let mut output_buffer = Tensor::new(vec![25, 16]).unwrap();
+        let mut input_buffer = TensorBuffer::new(vec![1, 32, 8400]).unwrap();
+        let mut output_buffer = TensorBuffer::new(vec![25, 16]).unwrap();
 
         postprocess(&mut input_buffer, &mut output_buffer).unwrap();
         postprocess_destroy().unwrap();

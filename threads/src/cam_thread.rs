@@ -1,20 +1,15 @@
 use crate::thread_trait::Processor;
 use anyhow::{anyhow, Result};
-
 use intelligent_sight_lib::{
-    get_image, initialize_camera, uninitialize_camera, FlipFlag, SharedBuffer, UnifiedTrait,
+    get_image, initialize_camera, uninitialize_camera, FlipFlag, ImageBuffer, SharedBuffer,
 };
 use log::{debug, info, log_enabled, warn};
-
-#[cfg(feature = "visualize")]
-use opencv::{self as cv, prelude::*};
-
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 
 pub struct CamThread {
-    shared_buffer: Arc<SharedBuffer<intelligent_sight_lib::Image>>,
+    shared_buffer: Arc<SharedBuffer<ImageBuffer>>,
     stop_sig: Arc<AtomicBool>,
 }
 
@@ -41,7 +36,7 @@ impl CamThread {
         );
         Ok(CamThread {
             shared_buffer: Arc::new(SharedBuffer::new(4, || {
-                intelligent_sight_lib::Image::new(buffer_width[0], buffer_height[0])
+                ImageBuffer::new(buffer_width[0], buffer_height[0])
             })?),
             stop_sig,
         })
@@ -65,47 +60,23 @@ impl Drop for CamThread {
 }
 
 impl Processor for CamThread {
-    type Output = intelligent_sight_lib::Image;
+    type Output = ImageBuffer;
 
-    fn get_output_buffer(&self) -> Arc<SharedBuffer<intelligent_sight_lib::Image>> {
+    fn get_output_buffer(&self) -> Arc<SharedBuffer<ImageBuffer>> {
         self.shared_buffer.clone()
     }
 
-    fn start_processor(&self) -> thread::JoinHandle<()> {
-        let stop_sig = self.stop_sig.clone();
-        let shared_buffer = self.shared_buffer.clone();
-
+    fn start_processor(self) -> thread::JoinHandle<()> {
         thread::spawn(move || {
             let mut cnt = 0;
             let mut start = std::time::Instant::now();
 
-            #[cfg(feature = "visualize")]
-            cv::highgui::named_window("CamThread", cv::highgui::WINDOW_AUTOSIZE).unwrap();
-            while stop_sig.load(Ordering::Relaxed) == false {
-                let mut lock = shared_buffer.write();
+            while self.stop_sig.load(Ordering::Relaxed) == false {
+                let mut lock = self.shared_buffer.write();
 
                 if let Err(err) = get_image(0, &mut lock, FlipFlag::None) {
                     warn!("err: {}", err);
                     break;
-                }
-
-                #[cfg(feature = "visualize")]
-                {
-                    let mat = unsafe {
-                        Mat::new_rows_cols_with_data_unsafe(
-                            lock.height as i32,
-                            lock.width as i32,
-                            cv::core::CV_8UC3,
-                            lock.host() as *mut std::ffi::c_void,
-                            lock.width as usize * 3 * std::mem::size_of::<u8>(),
-                        )
-                        .unwrap()
-                    };
-                    cv::highgui::imshow("CamThread", &mat).unwrap();
-                    let ret = cv::highgui::wait_key(1).unwrap();
-                    if ret == 'q' as i32 {
-                        break;
-                    }
                 }
 
                 drop(lock);
@@ -121,7 +92,7 @@ impl Processor for CamThread {
                     cnt = 0;
                 }
             }
-            stop_sig.store(true, Ordering::Relaxed);
+            self.stop_sig.store(true, Ordering::Relaxed);
         })
     }
 }

@@ -1,5 +1,3 @@
-use std::thread::JoinHandle;
-
 pub trait Processor
 where
     Self: Sized,
@@ -8,5 +6,5 @@ where
     fn get_output_buffer(
         &self,
     ) -> std::sync::Arc<intelligent_sight_lib::SharedBuffer<Self::Output>>;
-    fn start_processor(&self) -> JoinHandle<()>;
+    fn start_processor(self) -> std::thread::JoinHandle<()>;
 }
