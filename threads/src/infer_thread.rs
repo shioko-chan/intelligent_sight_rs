@@ -4,7 +4,7 @@ use intelligent_sight_lib::{
     convert_rgb888_3dtensor, create_context, create_engine, infer, release_resources, set_input,
     set_output, ImageBuffer, SharedBuffer, TensorBuffer,
 };
-use log::{debug, info, log_enabled, trace, warn};
+use log::{debug, error, info, log_enabled, trace};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -20,7 +20,7 @@ pub struct TrtThread {
 impl Drop for TrtThread {
     fn drop(&mut self) {
         if let Err(err) = release_resources() {
-            warn!("InferThread: Failed to release resources: {}", err);
+            error!("InferThread: Failed to release resources: {}", err);
         }
     }
 }
@@ -35,14 +35,14 @@ impl Processor for TrtThread {
     fn start_processor(self) -> thread::JoinHandle<()> {
         thread::spawn(move || {
             if let Err(err) = create_context() {
-                warn!("InferThread: failed create context, due to error: {}", err);
+                error!("InferThread: failed create context, due to error: {}", err);
                 self.stop_sig.store(true, Ordering::Relaxed);
                 return;
             }
 
             let mut engine_input_buffer = TensorBuffer::new(vec![1, 3, 640, 640]).unwrap();
             if let Err(err) = set_input(&mut engine_input_buffer) {
-                warn!("InferThread: set input buffer failed, error {}", err);
+                error!("InferThread: set input buffer failed, error {}", err);
                 self.stop_sig.store(true, Ordering::Relaxed);
                 return;
             }
@@ -59,7 +59,7 @@ impl Processor for TrtThread {
                 {
                     if let Err(err) = self.image_tx.send(lock_input.clone()) {
                         if self.stop_sig.load(Ordering::Relaxed) == false {
-                            warn!(
+                            error!(
                                 "InferThread: send image to display thread failed, error {}",
                                 err
                             );
@@ -69,7 +69,7 @@ impl Processor for TrtThread {
                 }
                 if let Err(err) = convert_rgb888_3dtensor(&mut lock_input, &mut engine_input_buffer)
                 {
-                    warn!("InferThread: convert image to tensor failed {}", err);
+                    error!("InferThread: convert image to tensor failed {}", err);
                     break;
                 }
                 drop(lock_input);
@@ -80,11 +80,11 @@ impl Processor for TrtThread {
 
                 let mut lock_output = self.output_buffer.write();
                 if let Err(err) = set_output(&mut lock_output) {
-                    warn!("InferThread: set output buffer failed, error {}", err);
+                    error!("InferThread: set output buffer failed, error {}", err);
                     break;
                 }
                 if let Err(err) = infer() {
-                    warn!("InferThread: infer failed, error {}", err);
+                    error!("InferThread: infer failed, error {}", err);
                     break;
                 }
                 drop(lock_output);

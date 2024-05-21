@@ -3,7 +3,7 @@ use anyhow::{anyhow, Result};
 use intelligent_sight_lib::{
     get_image, initialize_camera, uninitialize_camera, FlipFlag, ImageBuffer, SharedBuffer,
 };
-use log::{debug, info, log_enabled, warn};
+use log::{debug, error, info, log_enabled};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -20,13 +20,13 @@ impl CamThread {
         let mut initialize_retry = 0;
 
         while let Err(err) = initialize_camera(1, &mut buffer_width, &mut buffer_height) {
-            warn!(
+            error!(
                 "CamThread: Failed to initialize camera with err: {}, retrying...",
                 err
             );
             initialize_retry += 1;
             if initialize_retry > 10 {
-                warn!("CamThread: Failed to initialize camera after 10 retries, exiting...");
+                error!("CamThread: Failed to initialize camera after 10 retries, exiting...");
                 return Err(anyhow!("CamThread: Failed to initialize camera {}", err));
             }
         }
@@ -47,13 +47,13 @@ impl Drop for CamThread {
     fn drop(&mut self) {
         let mut uninitialize_retry = 0;
         while let Err(err) = uninitialize_camera() {
-            warn!(
+            error!(
                 "CamThread: Failed to uninitialize camera with err: {}, retrying...",
                 err
             );
             uninitialize_retry += 1;
             if uninitialize_retry > 10 {
-                warn!("CamThread: Failed to uninitialize camera after 10 retries, exiting...");
+                error!("CamThread: Failed to uninitialize camera after 10 retries, exiting...");
             }
         }
     }
@@ -75,7 +75,7 @@ impl Processor for CamThread {
                 let mut lock = self.shared_buffer.write();
 
                 if let Err(err) = get_image(0, &mut lock, FlipFlag::None) {
-                    warn!("err: {}", err);
+                    error!("err: {}", err);
                     break;
                 }
 

@@ -3,7 +3,7 @@ use anyhow::Result;
 use intelligent_sight_lib::{
     postprocess, postprocess_destroy, postprocess_init, SharedBuffer, TensorBuffer,
 };
-use log::{debug, info, log_enabled, warn};
+use log::{debug, error, info, log_enabled};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -22,7 +22,7 @@ pub struct PostprocessThread {
 impl Drop for PostprocessThread {
     fn drop(&mut self) {
         if let Err(err) = postprocess_destroy() {
-            warn!("PostprocessThread: Failed to release resources: {}", err);
+            error!("PostprocessThread: Failed to release resources: {}", err);
         }
     }
 }
@@ -50,7 +50,7 @@ impl Processor for PostprocessThread {
                         det.resize(vec![cnt as usize, 16]);
                         if let Err(err) = self.detection_tx.send(det) {
                             if self.stop_sig.load(Ordering::Relaxed) == false {
-                                warn!("PostprocessThread: Failed to send detection: {}", err);
+                                error!("PostprocessThread: Failed to send detection: {}", err);
                             }
                             break;
                         }
@@ -58,7 +58,7 @@ impl Processor for PostprocessThread {
                     #[cfg(not(feature = "visualize"))]
                     Ok(_) => {}
                     Err(err) => {
-                        warn!("PostprocessThread: Failed to postprocess: {}", err);
+                        error!("PostprocessThread: Failed to postprocess: {}", err);
                         break;
                     }
                 }

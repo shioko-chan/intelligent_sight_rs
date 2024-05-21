@@ -1,5 +1,5 @@
 use env_logger::{Builder, Target};
-use log::{info, warn};
+use log::{error, info};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
@@ -28,7 +28,7 @@ fn main() {
     let camera_thread = match cam_thread::CamThread::new(stop_sig.clone()) {
         Ok(camera_thread) => camera_thread,
         Err(err) => {
-            warn!("Main: Failed to initialize camera thread: {}", err);
+            error!("Main: Failed to initialize camera thread: {}", err);
             return;
         }
     };
@@ -45,7 +45,7 @@ fn main() {
     ) {
         Ok(infer_thread) => infer_thread,
         Err(err) => {
-            warn!("Main: Failed to initialize infer thread: {}", err);
+            error!("Main: Failed to initialize infer thread: {}", err);
             return;
         }
     };
@@ -62,7 +62,7 @@ fn main() {
     ) {
         Ok(postprocess_thread) => postprocess_thread,
         Err(err) => {
-            warn!("Main: Failed to initialize postprocess thread: {}", err);
+            error!("Main: Failed to initialize postprocess thread: {}", err);
             return;
         }
     };
