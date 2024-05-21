@@ -202,6 +202,12 @@ impl<T> Writer<T> {
     }
 }
 
+impl<T> Drop for Writer<T> {
+    fn drop(&mut self) {
+        self.0.message_cond.notify_all();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

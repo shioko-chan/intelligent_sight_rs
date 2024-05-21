@@ -7,7 +7,7 @@
 #include <thrust/device_ptr.h>
 
 constexpr uint16_t MAX_DETECT = 25;
-constexpr float CONF_THRESHOLD = 0.5;
+constexpr float CONF_THRESHOLD = 0.75;
 constexpr float IOU_THRESHOLD = 0.5;
 
 #define check_status(fun)                \

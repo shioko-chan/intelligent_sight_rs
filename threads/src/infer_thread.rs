@@ -80,6 +80,8 @@ impl Processor for TrtThread {
                     error!("InferThread: convert image to tensor failed {}", err);
                     break;
                 }
+
+                let timestamp = lock_input.timestamp;
                 drop(lock_input);
 
                 if log_enabled!(log::Level::Trace) {
@@ -95,7 +97,10 @@ impl Processor for TrtThread {
                     error!("InferThread: infer failed, error {}", err);
                     break;
                 }
+
+                lock_output.timestamp = timestamp;
                 drop(lock_output);
+
                 if log_enabled!(log::Level::Debug) {
                     cnt += 1;
                     if cnt == 10 {

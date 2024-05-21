@@ -169,6 +169,7 @@ uint16_t PostProcess::post_process(float *input_buffer, float *output_buffer, ui
     // (1, 32, 8400)
     transform_results<<<blocks, threads_pre_block>>>(input_buffer, this->transformed);
     // (1, 8400, 16)
+
     check_status(cudaDeviceSynchronize());
     thrust::sequence(this->d_indices, this->d_indices + 8400);
     thrust::sort(this->d_indices, this->d_indices + 8400, [d_transformed = this->d_transformed] __device__(int a, int b)
@@ -176,6 +177,12 @@ uint16_t PostProcess::post_process(float *input_buffer, float *output_buffer, ui
 
     check_status(cudaMemcpy(this->host_indices, this->indices, 8400 * sizeof(int), cudaMemcpyDeviceToHost));
     check_status(cudaMemcpy(this->host_transformed, this->transformed, 8400 * 16 * sizeof(float), cudaMemcpyDeviceToHost));
+
+    // for (int i = 0; i < 16; ++i)
+    // {
+    //     printf("%f ", this->host_transformed[i]);
+    // }
+    // printf("\n");
 
     int last = 8400;
     for (int i = 0; i < 8400; ++i)

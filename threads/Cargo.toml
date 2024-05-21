@@ -13,3 +13,4 @@ opencv = { version = "0.91.3", optional = true }
 
 [features]
 visualize = ["opencv"]
+from_video = ["opencv"]

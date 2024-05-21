@@ -119,10 +119,6 @@ mod unified_item_tradition {
             })
         }
 
-        pub fn from_raw_parts(ptr: *mut T, size: usize) -> Self {
-            HostArray { ptr, size }
-        }
-
         pub fn len(&self) -> usize {
             self.size
         }

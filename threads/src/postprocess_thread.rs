@@ -49,7 +49,9 @@ impl Processor for PostprocessThread {
                         break;
                     }
                 };
+
                 let mut lock_output = self.output_buffer.write();
+                lock_output.timestamp = lock_input.timestamp;
 
                 match postprocess(&mut lock_input, &mut lock_output) {
                     #[cfg(feature = "visualize")]
@@ -73,7 +75,6 @@ impl Processor for PostprocessThread {
 
                 drop(lock_input);
                 drop(lock_output);
-
                 if log_enabled!(log::Level::Debug) {
                     cnt += 1;
                     if cnt == 10 {

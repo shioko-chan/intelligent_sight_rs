@@ -66,7 +66,7 @@ impl Clone for ImageBuffer {
 pub struct TensorBuffer {
     size: Vec<usize>,
     data: UnifiedItem<f32>,
-    timestamp: Instant,
+    pub timestamp: Instant,
 }
 
 impl TensorBuffer {
