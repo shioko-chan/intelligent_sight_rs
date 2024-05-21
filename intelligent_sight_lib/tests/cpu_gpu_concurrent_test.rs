@@ -8,12 +8,12 @@ use std::thread;
 #[test]
 fn concurrent_rw_test() {
     let shared_buffer =
-        Arc::new(SharedBuffer::new(2, || TensorBuffer::new(vec![1, 3, 640, 640])).unwrap());
+        Arc::new(SharedBuffer::new(2, || TensorBuffer::new(vec![1, 3, 640, 480])).unwrap());
     let shared_buffer1 = shared_buffer.clone();
     let handle = thread::spawn(move || {
-        create_engine("../model.trt", "images", "output0", 640, 640).unwrap();
+        create_engine("../model.trt", "images", "output0", 640, 480).unwrap();
         create_context().unwrap();
-        let mut out_buffer = TensorBuffer::new(vec![1, 32, 8400]).unwrap();
+        let mut out_buffer = TensorBuffer::new(vec![1, 32, 6300]).unwrap();
         set_output(&mut out_buffer).unwrap();
         for _ in 0..1000 {
             let mut lock = shared_buffer.read().unwrap();

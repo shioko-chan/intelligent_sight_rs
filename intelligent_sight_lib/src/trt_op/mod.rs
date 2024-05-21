@@ -127,11 +127,11 @@ mod test {
 
     #[test]
     fn test_infer() {
-        create_engine("../model.trt", "images", "output0", 640, 640).unwrap();
+        create_engine("../model.trt", "images", "output0", 640, 480).unwrap();
         create_context().unwrap();
 
-        let mut input = TensorBuffer::new(vec![1, 3, 640, 640]).unwrap();
-        let mut output = TensorBuffer::new(vec![1, 32, 8400]).unwrap();
+        let mut input = TensorBuffer::new(vec![1, 3, 640, 480]).unwrap();
+        let mut output = TensorBuffer::new(vec![1, 32, 6300]).unwrap();
         set_input(&mut input).unwrap();
         set_output(&mut output).unwrap();
 
@@ -144,7 +144,7 @@ mod test {
         //     println!(
         //         "{} {}",
         //         i - 4,
-        //         output.iter().skip(i * 8400).take(1).next().unwrap()
+        //         output.iter().skip(i * 6300).take(1).next().unwrap()
         //     );
         // }
         // for num in output.iter()
@@ -168,7 +168,7 @@ mod test {
     fn test_postprocess() {
         postprocess_init().unwrap();
 
-        let mut input_buffer = TensorBuffer::new(vec![1, 32, 8400]).unwrap();
+        let mut input_buffer = TensorBuffer::new(vec![1, 32, 6300]).unwrap();
         let mut output_buffer = TensorBuffer::new(vec![25, 16]).unwrap();
 
         postprocess(&mut input_buffer, &mut output_buffer).unwrap();

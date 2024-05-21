@@ -9,6 +9,7 @@
 constexpr uint16_t MAX_DETECT = 25;
 constexpr float CONF_THRESHOLD = 0.75;
 constexpr float IOU_THRESHOLD = 0.5;
+constexpr uint16_t FEATURE_MAP_SIZE = 6300;
 
 #define check_status(fun)                \
     do                                   \

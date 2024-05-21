@@ -49,7 +49,7 @@ fn read_write_bench(c: &mut Criterion) {
     c.bench_function("allocation bench", |b| {
         b.iter(|| {
             criterion::black_box({
-                SharedBuffer::new(4, || ImageBuffer::new(1280, 1024))
+                SharedBuffer::new(2, || ImageBuffer::new(1280, 1024))
                     .expect("fail to allocate sharedbuffer");
             });
         });

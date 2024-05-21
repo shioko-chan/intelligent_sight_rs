@@ -40,7 +40,7 @@ impl Processor for TrtThread {
                 return;
             }
 
-            let mut engine_input_buffer = TensorBuffer::new(vec![1, 3, 640, 640]).unwrap();
+            let mut engine_input_buffer = TensorBuffer::new(vec![1, 3, 640, 480]).unwrap();
             if let Err(err) = set_input(&mut engine_input_buffer) {
                 error!("InferThread: set input buffer failed, error {}", err);
                 self.stop_sig.store(true, Ordering::Relaxed);
@@ -123,12 +123,12 @@ impl TrtThread {
         stop_sig: Arc<AtomicBool>,
         #[cfg(feature = "visualize")] image_tx: std::sync::mpsc::Sender<ImageBuffer>,
     ) -> Result<Self> {
-        create_engine("model.trt", "images", "output0", 640, 640)?;
+        create_engine("model.trt", "images", "output0", 640, 480)?;
 
-        info!("InferThread: output buffer size: {:?}", vec![1, 32, 8400]);
+        info!("InferThread: output buffer size: {:?}", vec![1, 32, 6300]);
         Ok(Self {
             input_buffer,
-            output_buffer: Writer::new(4, || TensorBuffer::new(vec![1, 32, 8400]))?,
+            output_buffer: Writer::new(4, || TensorBuffer::new(vec![1, 32, 6300]))?,
             stop_sig,
             #[cfg(feature = "visualize")]
             image_tx,

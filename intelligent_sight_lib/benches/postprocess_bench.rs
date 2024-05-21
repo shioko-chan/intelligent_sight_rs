@@ -6,7 +6,7 @@ use intelligent_sight_lib::{
 fn postprocess_bench(c: &mut Criterion) {
     postprocess_init().unwrap();
 
-    let mut input_buffer = TensorBuffer::new(vec![1, 32, 8400]).unwrap();
+    let mut input_buffer = TensorBuffer::new(vec![1, 32, 6300]).unwrap();
     input_buffer.iter_mut().for_each(|num| *num = 0.9);
     input_buffer.to_device().unwrap();
     let mut output_buffer = TensorBuffer::new(vec![25, 16]).unwrap();

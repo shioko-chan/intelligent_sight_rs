@@ -3,37 +3,38 @@
 #include <thrust/device_vector.h>
 #include <thrust/sort.h>
 
-// input tensor shape (1, 32, 8400)
+// input tensor shape (1, 32, FEATURE_MAP_SIZE)
 // 32: 4(xywh) + 18(class) + 10(kpnt)
-// output shape (1, 8400, 16)
+// output shape (1, FEATURE_MAP_SIZE, 16)
 // 16: 4(xywh) + 1(score) + 1(cls) + 10(kpnt)
+
 __global__ void transform_results(float *input_buffer, float *output_buffer)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-    if (x < 8400)
+    if (x < FEATURE_MAP_SIZE)
     {
         if (y == 0)
         {
             for (int i = 0; i < 4; i++)
             {
-                output_buffer[x * 16 + i] = input_buffer[i * 8400 + x];
+                output_buffer[x * 16 + i] = input_buffer[i * FEATURE_MAP_SIZE + x];
             }
             for (int i = 22; i < 32; i++)
             {
-                output_buffer[x * 16 + i - 16] = input_buffer[i * 8400 + x];
+                output_buffer[x * 16 + i - 16] = input_buffer[i * FEATURE_MAP_SIZE + x];
             }
         }
         else if (y == 1)
         {
-            float max_score = input_buffer[4 * 8400 + x];
+            float max_score = input_buffer[4 * FEATURE_MAP_SIZE + x];
             int cls = 0;
             for (int i = 5; i < 22; i++)
             {
-                if (input_buffer[i * 8400 + x] > max_score)
+                if (input_buffer[i * FEATURE_MAP_SIZE + x] > max_score)
                 {
-                    max_score = input_buffer[i * 8400 + x];
+                    max_score = input_buffer[i * FEATURE_MAP_SIZE + x];
                     cls = i - 4;
                 }
             }
@@ -45,14 +46,14 @@ __global__ void transform_results(float *input_buffer, float *output_buffer)
 
 uint16_t PostProcess::init()
 {
-    check_status(cudaMalloc(&this->transformed, 8400 * 16 * sizeof(float)));
-    check_status(cudaMalloc(&this->indices, 8400 * sizeof(int)));
+    check_status(cudaMalloc(&this->transformed, FEATURE_MAP_SIZE * 16 * sizeof(float)));
+    check_status(cudaMalloc(&this->indices, FEATURE_MAP_SIZE * sizeof(int)));
 
     this->d_transformed = thrust::device_ptr<float>(this->transformed);
     this->d_indices = thrust::device_ptr<int>(this->indices);
 
-    check_status(cudaMallocHost(&this->host_transformed, 8400 * 16 * sizeof(float)));
-    check_status(cudaMallocHost(&this->host_indices, 8400 * sizeof(int)));
+    check_status(cudaMallocHost(&this->host_transformed, FEATURE_MAP_SIZE * 16 * sizeof(float)));
+    check_status(cudaMallocHost(&this->host_indices, FEATURE_MAP_SIZE * sizeof(int)));
 
     return (uint16_t)cudaSuccess;
 }
@@ -94,26 +95,26 @@ bool PostProcess::check_iou(float *box1, float *box2)
 //     auto diff = end - start;
 //     std::cout << "Time taken by 1" << ": " << diff.count() << " seconds" << std::endl;
 //     start = std::chrono::high_resolution_clock::now();
-//     thrust::sequence(this->d_indices, this->d_indices + 8400);
+//     thrust::sequence(this->d_indices, this->d_indices + FEATURE_MAP_SIZE);
 //     end = std::chrono::high_resolution_clock::now();
 //     diff = end - start;
 //     std::cout << "Time taken by 2" << ": " << diff.count() << " seconds" << std::endl;
 //     start = std::chrono::high_resolution_clock::now();
-//     thrust::sort(this->d_indices, this->d_indices + 8400, [d_transformed = this->d_transformed] __device__(int a, int b)
+//     thrust::sort(this->d_indices, this->d_indices + FEATURE_MAP_SIZE, [d_transformed = this->d_transformed] __device__(int a, int b)
 //                  { return d_transformed[a * 16 + 4] > d_transformed[b * 16 + 4]; });
 //     end = std::chrono::high_resolution_clock::now();
 //     diff = end - start;
 //     std::cout << "Time taken by 3" << ": " << diff.count() << " seconds" << std::endl;
 //     start = std::chrono::high_resolution_clock::now();
-//     check_status(cudaMemcpy(this->host_indices, this->indices, 8400 * sizeof(int), cudaMemcpyDeviceToHost));
-//     check_status(cudaMemcpy(this->host_transformed, this->transformed, 8400 * 16 * sizeof(float), cudaMemcpyDeviceToHost));
+//     check_status(cudaMemcpy(this->host_indices, this->indices, FEATURE_MAP_SIZE * sizeof(int), cudaMemcpyDeviceToHost));
+//     check_status(cudaMemcpy(this->host_transformed, this->transformed, FEATURE_MAP_SIZE * 16 * sizeof(float), cudaMemcpyDeviceToHost));
 //     end = std::chrono::high_resolution_clock::now();
 //     diff = end - start;
 //     std::cout << "Time taken by 4" << ": " << diff.count() << " seconds" << std::endl;
 //     *num_detections = (uint16_t)MAX_DETECT;
 //     start = std::chrono::high_resolution_clock::now();
-//     int last = 8400;
-//     for (int i = 0; i < 8400; ++i)
+//     int last = FEATURE_MAP_SIZE;
+//     for (int i = 0; i < FEATURE_MAP_SIZE; ++i)
 //     {
 //         if (this->host_transformed[i * 16 + 4] < CONF_THRESHOLD)
 //         {
@@ -159,24 +160,24 @@ bool PostProcess::check_iou(float *box1, float *box2)
 //     return (uint16_t)cudaSuccess;
 // }
 
-// input buffer (1, 32, 8400)
+// input buffer (1, 32, FEATURE_MAP_SIZE)
 // output buffer (MAX_DETECTION, 16)
 // 16: 4(xywh) + 1(score) + 1(cls) + 10(kpnt)
 uint16_t PostProcess::post_process(float *input_buffer, float *output_buffer, uint16_t *num_detections)
 {
     dim3 threads_pre_block(48, 2);
     dim3 blocks(175);
-    // (1, 32, 8400)
+    // (1, 32, FEATURE_MAP_SIZE)
     transform_results<<<blocks, threads_pre_block>>>(input_buffer, this->transformed);
-    // (1, 8400, 16)
+    // (1, FEATURE_MAP_SIZE, 16)
 
     check_status(cudaDeviceSynchronize());
-    thrust::sequence(this->d_indices, this->d_indices + 8400);
-    thrust::sort(this->d_indices, this->d_indices + 8400, [d_transformed = this->d_transformed] __device__(int a, int b)
+    thrust::sequence(this->d_indices, this->d_indices + FEATURE_MAP_SIZE);
+    thrust::sort(this->d_indices, this->d_indices + FEATURE_MAP_SIZE, [d_transformed = this->d_transformed] __device__(int a, int b)
                  { return d_transformed[a * 16 + 4] > d_transformed[b * 16 + 4]; });
 
-    check_status(cudaMemcpy(this->host_indices, this->indices, 8400 * sizeof(int), cudaMemcpyDeviceToHost));
-    check_status(cudaMemcpy(this->host_transformed, this->transformed, 8400 * 16 * sizeof(float), cudaMemcpyDeviceToHost));
+    check_status(cudaMemcpy(this->host_indices, this->indices, FEATURE_MAP_SIZE * sizeof(int), cudaMemcpyDeviceToHost));
+    check_status(cudaMemcpy(this->host_transformed, this->transformed, FEATURE_MAP_SIZE * 16 * sizeof(float), cudaMemcpyDeviceToHost));
 
     // for (int i = 0; i < 16; ++i)
     // {
@@ -184,15 +185,21 @@ uint16_t PostProcess::post_process(float *input_buffer, float *output_buffer, ui
     // }
     // printf("\n");
 
-    int last = 8400;
-    for (int i = 0; i < 8400; ++i)
+    int end = FEATURE_MAP_SIZE;
+    for (int i = 0; i < FEATURE_MAP_SIZE; ++i)
     {
         int idx = this->host_indices[i];
         if (this->host_transformed[idx * 16 + 4] < CONF_THRESHOLD)
         {
-            last = i;
+            end = i;
             break;
         }
+    }
+
+    if (end == 0)
+    {
+        *num_detections = 0;
+        return (uint16_t)cudaSuccess;
     }
 
     int i = 0;
@@ -206,7 +213,7 @@ uint16_t PostProcess::post_process(float *input_buffer, float *output_buffer, ui
 
         int next = -1;
         float *box = this->host_transformed + idx * 16;
-        for (; j < last; ++j)
+        for (; j < end; ++j)
         {
             int idx1 = this->host_indices[j];
             if (idx1 == -1)
@@ -237,7 +244,7 @@ uint16_t postprocess_init()
     return (uint16_t)cudaSuccess;
 }
 
-// input buffer (1, 32, 8400)
+// input buffer (1, 32, FEATURE_MAP_SIZE)
 // output buffer (MAX_DETECTION, 16)
 // 16: 4(xywh) + 1(score) + 1(cls) + 10(kpnt)
 uint16_t postprocess(float *input_buffer, float *output_buffer, uint16_t *num_detections)

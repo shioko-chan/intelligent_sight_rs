@@ -23,7 +23,7 @@ impl ImageBuffer {
 
 impl Default for ImageBuffer {
     fn default() -> Self {
-        match ImageBuffer::new(640, 640) {
+        match ImageBuffer::new(640, 480) {
             Ok(image) => image,
             Err(err) => {
                 panic!(
