@@ -1,7 +1,8 @@
-#include "trt.h"
 #include <cuda_runtime_api.h>
 #include <thrust/device_vector.h>
 #include <thrust/sort.h>
+
+#include "../include/gpu.h"
 
 // input tensor shape (1, 32, FEATURE_MAP_SIZE)
 // 32: 4(xywh) + 18(class) + 10(kpnt)
@@ -178,12 +179,6 @@ uint16_t PostProcess::post_process(float *input_buffer, float *output_buffer, ui
 
     check_status(cudaMemcpy(this->host_indices, this->indices, FEATURE_MAP_SIZE * sizeof(int), cudaMemcpyDeviceToHost));
     check_status(cudaMemcpy(this->host_transformed, this->transformed, FEATURE_MAP_SIZE * 16 * sizeof(float), cudaMemcpyDeviceToHost));
-
-    // for (int i = 0; i < 16; ++i)
-    // {
-    //     printf("%f ", this->host_transformed[i]);
-    // }
-    // printf("\n");
 
     int end = FEATURE_MAP_SIZE;
     for (int i = 0; i < FEATURE_MAP_SIZE; ++i)

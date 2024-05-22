@@ -1,4 +1,4 @@
-workspace = { members = ["intelligent_sight_lib", "threads"] }
+workspace = { members = ["intelligent_sight_lib", "threads", "utility"] }
 [package]
 name = "intelligent_sight_rs"
 version = "0.1.0"

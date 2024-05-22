@@ -14,6 +14,17 @@ impl ErrCode {
     }
 }
 
+pub const TRT_ERR_NAME: ErrCode = ErrCode::new(&[
+    (10000, "TRT_CREATE_ENGINE_FAIL"),
+    (10001, "TRT_CREATE_RUNTIME_FAIL"),
+    (10002, "TRT_CREATE_CONTEXT_FAIL"),
+    (10003, "TRT_READ_ENGINE_FILE_FAIL"),
+    (10004, "TRT_INFER_FAIL"),
+    (10005, "TRT_DESTROY_ENGINE_FAIL"),
+    (10006, "TRT_CREATE_CUDASTREAM_FAIL"),
+    (10007, "TRT_ENGINE_NOT_INITIALIZED"),
+]);
+
 pub const CUDA_ERR_NAME: ErrCode = ErrCode::new(&[
     (
         0,

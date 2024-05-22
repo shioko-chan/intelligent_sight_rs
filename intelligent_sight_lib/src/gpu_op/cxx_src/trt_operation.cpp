@@ -1,16 +1,14 @@
-#include <cassert>
-#include <cfloat>
-#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include <sstream>
+#include <string>
 #include <vector>
 #include <cstdint>
+#include <cstring>
 
 #include <NvInfer.h>
 
-#include "trt.h"
+#include "../include/gpu.h"
 
 TensorrtInfer *TRT_INFER = nullptr;
 
@@ -18,7 +16,7 @@ void Logger::log(Severity severity, const char *msg) noexcept
 {
     if (severity <= Severity::kVERBOSE)
     {
-        std::cout << static_cast<int32_t>(severity) << ": " << msg << std::endl;
+        std::cout << log_level[static_cast<uint8_t>(severity)] << ": " << msg << std::endl;
     }
 }
 
@@ -42,24 +40,28 @@ uint16_t TensorrtInfer::create_engine()
 
     engineFile.close();
 
-    printf("TRT: Engine file size: %ld\n", fsize);
+    std::string mes("TRT: Engine file size:");
+    mes.append(std::to_string(fsize));
+
+    G_LOGGER.log(nvinfer1::ILogger::Severity::kINFO, mes.c_str());
 
     check_status(cudaStreamCreate(&CUDA_STREAM));
 
-    printf("TRT: Created CUDA stream\n");
+    G_LOGGER.log(nvinfer1::ILogger::Severity::kINFO, "TRT: Created CUDA stream");
+
     RUNTIME = nvinfer1::createInferRuntime(G_LOGGER);
     if (RUNTIME == nullptr)
     {
         return TRT_CREATE_RUNTIME_FAIL;
     }
-    printf("TRT: Created runtime\n");
+    G_LOGGER.log(nvinfer1::ILogger::Severity::kINFO, "TRT: Created runtime");
 
     M_ENGINE = RUNTIME->deserializeCudaEngine(engineData.data(), fsize);
     if (M_ENGINE == nullptr)
     {
         return TRT_CREATE_ENGINE_FAIL;
     }
-    printf("TRT: Deserialized engine\n");
+    G_LOGGER.log(nvinfer1::ILogger::Severity::kINFO, "TRT: Deserialized engine");
 
     return TRT_OK;
 }
@@ -78,13 +80,13 @@ uint16_t TensorrtInfer::create_context()
     {
         return TRT_CREATE_CONTEXT_FAIL;
     }
-    printf("TRT: Created context\n");
+    G_LOGGER.log(nvinfer1::ILogger::Severity::kINFO, "TRT: Created context");
     return TRT_OK;
 }
 
 uint16_t TensorrtInfer::set_input(float *input_buffer)
 {
-    if (!CONTEXT->setTensorAddress(INPUT_NAME, (void *)input_buffer))
+    if (!CONTEXT->setTensorAddress(INPUT_NAME.c_str(), (void *)input_buffer))
     {
         G_LOGGER.log(nvinfer1::ILogger::Severity::kERROR, "Failed to set input tensor address");
         return TRT_INFER_FAIL;
@@ -95,7 +97,7 @@ uint16_t TensorrtInfer::set_input(float *input_buffer)
 
 uint16_t TensorrtInfer::set_output(float *output_buffer)
 {
-    if (!CONTEXT->setTensorAddress(OUTPUT_NAME, (void *)output_buffer))
+    if (!CONTEXT->setTensorAddress(OUTPUT_NAME.c_str(), (void *)output_buffer))
     {
         G_LOGGER.log(nvinfer1::ILogger::Severity::kERROR, "Failed to set output tensor address");
         return TRT_INFER_FAIL;
@@ -121,12 +123,9 @@ uint16_t TensorrtInfer::infer()
 
 TensorrtInfer::TensorrtInfer(const char *engine_filename, const char *input_name, const char *output_name, uint32_t width, uint32_t height) : WIDTH(width), HEIGHT(height)
 {
-    ENGINE_NAME = new char[std::strlen(engine_filename) + 1];
-    std::strcpy(const_cast<char *>(ENGINE_NAME), engine_filename);
-    INPUT_NAME = new char[std::strlen(input_name) + 1];
-    std::strcpy(const_cast<char *>(INPUT_NAME), input_name);
-    OUTPUT_NAME = new char[std::strlen(output_name) + 1];
-    std::strcpy(const_cast<char *>(OUTPUT_NAME), output_name);
+    ENGINE_NAME = std::string(engine_filename);
+    INPUT_NAME = std::string(input_name);
+    OUTPUT_NAME = std::string(output_name);
 }
 
 TensorrtInfer::~TensorrtInfer()
@@ -135,9 +134,6 @@ TensorrtInfer::~TensorrtInfer()
     delete CONTEXT;
     delete M_ENGINE;
     delete RUNTIME;
-    delete ENGINE_NAME;
-    delete INPUT_NAME;
-    delete OUTPUT_NAME;
 }
 
 uint16_t TensorrtInfer::release_resources()

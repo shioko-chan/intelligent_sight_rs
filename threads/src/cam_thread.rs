@@ -7,7 +7,7 @@ use intelligent_sight_lib::{ImageBuffer, Reader, Writer};
 use log::{debug, error, info, log_enabled};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::thread;
+use std::{path, thread};
 
 #[cfg(feature = "from_video")]
 use opencv::{self as cv, prelude::*};
@@ -54,11 +54,18 @@ impl CamThread {
         }
         #[cfg(feature = "from_video")]
         {
+            let args = std::env::args().collect::<Vec<_>>();
+            let path = if args.len() > 1 {
+                let path_buf = path::Path::new("testvideos").join(&args[1]);
+                path_buf
+            } else {
+                path::Path::new("testvideos").join("power_rune.mp4")
+            };
             Ok(CamThread {
                 shared_buffer: Writer::new(4, || ImageBuffer::new(640, 480))?,
                 stop_sig,
                 video_capture: cv::videoio::VideoCapture::from_file(
-                    "testvideos/power_rune.mp4",
+                    path.to_str().unwrap(),
                     cv::videoio::CAP_FFMPEG,
                 )
                 .map_err(|e| anyhow!("Failed to open video file: {}", e))?,
@@ -119,12 +126,14 @@ impl Processor for CamThread {
                         cv::imgproc::INTER_LINEAR,
                     )
                     .unwrap();
-                    mat.data_bytes()
+                    let mut dst = Mat::default();
+                    cv::imgproc::cvt_color_def(&mat, &mut dst, cv::imgproc::COLOR_BGR2RGB).unwrap();
+                    dst.data_bytes()
                         .unwrap()
                         .iter()
                         .zip(lock.iter_mut())
                         .for_each(|(a, b)| {
-                            *b = *a;
+                            *b = a.checked_mul(1).unwrap_or(255);
                         });
                 }
 

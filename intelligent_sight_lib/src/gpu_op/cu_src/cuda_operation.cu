@@ -1,7 +1,7 @@
 #include <cuda_runtime.h>
 #include <cfloat>
 #include <cstdint>
-#include "cuda_op.h"
+#include "../include/gpu.h"
 
 cudaStream_t CUDASTREAM = nullptr;
 

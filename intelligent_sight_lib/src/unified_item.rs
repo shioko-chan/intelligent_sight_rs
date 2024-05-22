@@ -18,7 +18,7 @@ pub trait UnifiedTrait<T> {
 mod unified_item_tradition {
     use super::UnifiedTrait;
     use crate::{
-        cuda_free, cuda_free_host, cuda_malloc, cuda_malloc_host, cuda_op::transfer_device_to_host,
+        cuda_free, cuda_free_host, cuda_malloc, cuda_malloc_host, gpu_op::transfer_device_to_host,
         transfer_host_to_device,
     };
     use anyhow::Result;
