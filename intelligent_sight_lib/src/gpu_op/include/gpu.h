@@ -56,7 +56,7 @@ private:
     bool check_iou(float *box1, float *box2);
 
 public:
-    PostProcess::PostProcess();
+    PostProcess();
     PostProcess(uint16_t max_detect, float conf_threshold, float iou_threshold, uint16_t feature_map_size);
     uint16_t init();
     uint16_t post_process(float *input_buffer, float *output_buffer, uint16_t *num_detections);
