@@ -337,21 +337,21 @@ mod test {
         postprocess_destroy().unwrap();
     }
 
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "windows", target_arch = "aarch64"))]
     #[test]
     fn test_malloc() {
         let ptr: *mut f64 = cuda_malloc(1024).expect("malloc error");
         cuda_free(ptr).expect("free error");
     }
 
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "windows", target_arch = "aarch64"))]
     #[test]
     fn test_malloc_host() {
         let ptr: *mut u128 = cuda_malloc_host(1024).expect("malloc error");
         cuda_free_host(ptr).expect("free error");
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(not(any(target_os = "windows", target_arch = "aarch64")))]
     #[test]
     fn test_malloc_managed() {
         let ptr: *mut f32 = cuda_malloc_managed(1024).expect("malloc error");
