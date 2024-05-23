@@ -1,4 +1,4 @@
-use crate::thread_trait::Processor;
+use crate::{thread_trait::Processor, CONFIG};
 use anyhow::Result;
 use intelligent_sight_lib::{
     postprocess, postprocess_destroy, postprocess_init, postprocess_init_default, DetectionBuffer,
@@ -112,7 +112,18 @@ impl PostprocessThread {
         stop_sig: Arc<AtomicBool>,
         #[cfg(feature = "visualize")] detection_tx: mpsc::Sender<TensorBuffer>,
     ) -> Result<Self> {
-        postprocess_init_default()?;
+        unsafe {
+            if let Some(config) = &CONFIG {
+                postprocess_init(
+                    config.max_detections,
+                    config.confidence_threshold,
+                    config.iou_threshold,
+                    config.feature_map_size,
+                )?;
+            } else {
+                postprocess_init_default()?;
+            }
+        }
 
         info!("PostprocessThread: output buffer size: {:?}", vec![25, 16]);
 

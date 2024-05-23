@@ -22,11 +22,13 @@ use std::sync::mpsc;
 
 #[derive(Debug, Default, Deserialize)]
 pub struct AppConfig {
-    pub max_detections: u32,
+    pub max_detections: u16,
     pub confidence_threshold: f32,
     pub iou_threshold: f32,
-    pub feature_map_size: u32,
+    pub feature_map_size: u16,
 }
+
+static mut CONFIG: Option<AppConfig> = None;
 
 fn set_ctrlc(stop_sig: Arc<AtomicBool>) {
     ctrlc::set_handler(move || {
@@ -40,16 +42,23 @@ fn main() {
 
     info!("Main: starting...🚀");
 
-    let config = Config::builder()
+    let Ok(config) = Config::builder()
         .add_source(File::with_name("config"))
         .build()
-        .unwrap();
+    else {
+        error!("Failed to load config file");
+        return;
+    };
 
-    let config: AppConfig = config
-        .try_deserialize()
-        .expect("Failed to deserialize config");
+    let Ok(config) = config.try_deserialize::<AppConfig>() else {
+        error!("Failed to deserialize config");
+        return;
+    };
 
-    println!("{:?}", config);
+    unsafe {
+        CONFIG = Some(config);
+    }
+
     let stop_sig = Arc::new(AtomicBool::new(false));
 
     let camera_thread = match cam_thread::CamThread::new(stop_sig.clone()) {
