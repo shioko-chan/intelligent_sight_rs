@@ -59,7 +59,9 @@ impl Processor for PostprocessThread {
                     Ok(cnt) => {
                         infer_res.timestamp = lock_input.timestamp;
                         drop(lock_input);
-                        if cfg!(feature = "visualize") {
+
+                        #[cfg(feature = "visualize")]
+                        {
                             let mut det = infer_res.clone();
                             det.resize(vec![cnt as usize, 16]);
                             if let Err(err) = self.detection_tx.send(det) {
@@ -69,6 +71,7 @@ impl Processor for PostprocessThread {
                                 break;
                             }
                         }
+
                         let mut lock_output = self.output_buffer.write();
                         lock_output.timestamp = infer_res.timestamp;
                         let mut iter = infer_res.iter();

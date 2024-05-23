@@ -43,7 +43,7 @@ fn main() {
     info!("Main: starting...🚀");
 
     let Ok(config) = Config::builder()
-        .add_source(File::with_name("config"))
+        .add_source(File::with_name("Config"))
         .build()
     else {
         error!("Failed to load config file");
