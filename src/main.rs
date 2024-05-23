@@ -1,15 +1,32 @@
+mod analysis_thread;
+mod cam_thread;
+mod infer_thread;
+mod postprocess_thread;
+mod thread_trait;
+
+#[cfg(feature = "visualize")]
+mod display_thread;
+
+use config::{Config, File};
 use env_logger::{Builder, Target};
 use log::{error, info};
+use serde::Deserialize;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-
 use thread_trait::Processor;
-use threads::*;
 
 #[cfg(feature = "visualize")]
 use std::sync::mpsc;
+
+#[derive(Debug, Default, Deserialize)]
+pub struct AppConfig {
+    pub max_detections: u32,
+    pub confidence_threshold: f32,
+    pub iou_threshold: f32,
+    pub feature_map_size: u32,
+}
 
 fn set_ctrlc(stop_sig: Arc<AtomicBool>) {
     ctrlc::set_handler(move || {
@@ -23,6 +40,16 @@ fn main() {
 
     info!("Main: starting...🚀");
 
+    let config = Config::builder()
+        .add_source(File::with_name("config"))
+        .build()
+        .unwrap();
+
+    let config: AppConfig = config
+        .try_deserialize()
+        .expect("Failed to deserialize config");
+
+    println!("{:?}", config);
     let stop_sig = Arc::new(AtomicBool::new(false));
 
     let camera_thread = match cam_thread::CamThread::new(stop_sig.clone()) {

@@ -1,10 +1,10 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use intelligent_sight_lib::{
-    postprocess, postprocess_destroy, postprocess_init, TensorBuffer, UnifiedTrait,
+    postprocess, postprocess_destroy, postprocess_init_default, TensorBuffer, UnifiedTrait,
 };
 
 fn postprocess_bench(c: &mut Criterion) {
-    postprocess_init().unwrap();
+    postprocess_init_default().unwrap();
 
     let mut input_buffer = TensorBuffer::new(vec![1, 32, 6300]).unwrap();
     input_buffer.iter_mut().for_each(|num| *num = 0.9);

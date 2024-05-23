@@ -50,7 +50,13 @@ mod trt_op_ffi {
         pub fn release_resources() -> u16;
         pub fn set_input(input_buffer: *mut f32) -> u16;
         pub fn set_output(output_buffer: *mut f32) -> u16;
-        pub fn postprocess_init() -> u16;
+        pub fn postprocess_init(
+            max_detect: u16,
+            conf_threshold: f32,
+            iou_threshold: f32,
+            feature_map_size: u16,
+        ) -> u16;
+        pub fn postprocess_init_default() -> u16;
         pub fn postprocess(
             input_buffer: *const f32,
             output_buffer: *mut f32,
@@ -232,8 +238,26 @@ pub fn set_output(output_buffer: &mut UnifiedItem<f32>) -> Result<()> {
     exec_and_check(|| Ok(unsafe { trt_op_ffi::set_output(output_buffer.device()?) }))
 }
 
-pub fn postprocess_init() -> Result<()> {
-    exec_and_check(|| Ok(unsafe { trt_op_ffi::postprocess_init() }))
+pub fn postprocess_init(
+    max_detect: u16,
+    conf_threshold: f32,
+    iou_threshold: f32,
+    feature_map_size: u16,
+) -> Result<()> {
+    exec_and_check(|| {
+        Ok(unsafe {
+            trt_op_ffi::postprocess_init(
+                max_detect,
+                conf_threshold,
+                iou_threshold,
+                feature_map_size,
+            )
+        })
+    })
+}
+
+pub fn postprocess_init_default() -> Result<()> {
+    exec_and_check(|| Ok(unsafe { trt_op_ffi::postprocess_init_default() }))
 }
 
 pub fn postprocess(
@@ -304,7 +328,7 @@ mod test {
 
     #[test]
     fn test_postprocess() {
-        postprocess_init().unwrap();
+        postprocess_init_default().unwrap();
 
         let mut input_buffer = TensorBuffer::new(vec![1, 32, 6300]).unwrap();
         let mut output_buffer = TensorBuffer::new(vec![25, 16]).unwrap();

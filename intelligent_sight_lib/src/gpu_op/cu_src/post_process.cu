@@ -8,8 +8,7 @@
 // 32: 4(xywh) + 18(class) + 10(kpnt)
 // output shape (1, FEATURE_MAP_SIZE, 16)
 // 16: 4(xywh) + 1(score) + 1(cls) + 10(kpnt)
-
-__global__ void transform_results(float *input_buffer, float *output_buffer)
+__global__ void transform_results(float *input_buffer, float *output_buffer, uint16_t FEATURE_MAP_SIZE)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -44,6 +43,10 @@ __global__ void transform_results(float *input_buffer, float *output_buffer)
         }
     }
 }
+
+PostProcess::PostProcess() {}
+
+PostProcess::PostProcess(uint16_t max_detect, float conf_threshold, float iou_threshold, uint16_t feature_map_size) : MAX_DETECT(max_detect), CONF_THRESHOLD(conf_threshold), IOU_THRESHOLD(iou_threshold), FEATURE_MAP_SIZE(feature_map_size) {}
 
 uint16_t PostProcess::init()
 {
@@ -161,15 +164,15 @@ bool PostProcess::check_iou(float *box1, float *box2)
 //     return (uint16_t)cudaSuccess;
 // }
 
-// input buffer (1, 32, FEATURE_MAP_SIZE)
-// output buffer (MAX_DETECTION, 16)
+// input buffer (1, 32, FEATURE_MAP_SIZE)  (DEVICE)
+// output buffer (MAX_DETECTION, 16)  (HOST)
 // 16: 4(xywh) + 1(score) + 1(cls) + 10(kpnt)
 uint16_t PostProcess::post_process(float *input_buffer, float *output_buffer, uint16_t *num_detections)
 {
     dim3 threads_pre_block(48, 2);
     dim3 blocks(175);
     // (1, 32, FEATURE_MAP_SIZE)
-    transform_results<<<blocks, threads_pre_block>>>(input_buffer, this->transformed);
+    transform_results<<<blocks, threads_pre_block>>>(input_buffer, this->transformed, FEATURE_MAP_SIZE);
     // (1, FEATURE_MAP_SIZE, 16)
 
     check_status(cudaDeviceSynchronize());
@@ -232,9 +235,16 @@ uint16_t PostProcess::post_process(float *input_buffer, float *output_buffer, ui
 
 PostProcess *POSTPROCESS;
 
-uint16_t postprocess_init()
+uint16_t postprocess_init_default()
 {
     POSTPROCESS = new PostProcess();
+    check_status(POSTPROCESS->init());
+    return (uint16_t)cudaSuccess;
+}
+
+uint16_t postprocess_init(uint16_t max_detect, float conf_threshold, float iou_threshold, uint16_t feature_map_size)
+{
+    POSTPROCESS = new PostProcess(max_detect, conf_threshold, iou_threshold, feature_map_size);
     check_status(POSTPROCESS->init());
     return (uint16_t)cudaSuccess;
 }

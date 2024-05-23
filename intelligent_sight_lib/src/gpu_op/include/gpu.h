@@ -7,8 +7,6 @@
 #include <thrust/device_ptr.h>
 #include <string>
 
-#include "config.h"
-
 #define check_status(fun)                \
     do                                   \
     {                                    \
@@ -37,7 +35,8 @@ extern "C"
     uint16_t release_resources();
     uint16_t set_input(float *input_buffer);
     uint16_t set_output(float *output_buffer);
-    uint16_t postprocess_init();
+    uint16_t postprocess_init(uint16_t max_detect, float conf_threshold, float iou_threshold, uint16_t feature_map_size);
+    uint16_t postprocess_init_default();
     uint16_t postprocess(float *input_buffer, float *output_buffer, uint16_t *num_detections);
     uint16_t postprocess_destroy();
 }
@@ -45,6 +44,11 @@ extern "C"
 struct PostProcess
 {
 private:
+    uint16_t MAX_DETECT = 25;
+    float CONF_THRESHOLD = 0.5;
+    float IOU_THRESHOLD = 0.5;
+    uint16_t FEATURE_MAP_SIZE = 6300;
+
     float *transformed, *host_transformed;
     int *indices, *host_indices;
     thrust::device_ptr<int> d_indices;
@@ -52,6 +56,8 @@ private:
     bool check_iou(float *box1, float *box2);
 
 public:
+    PostProcess::PostProcess();
+    PostProcess(uint16_t max_detect, float conf_threshold, float iou_threshold, uint16_t feature_map_size);
     uint16_t init();
     uint16_t post_process(float *input_buffer, float *output_buffer, uint16_t *num_detections);
     uint16_t uninit();

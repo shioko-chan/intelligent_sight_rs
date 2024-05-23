@@ -3,6 +3,45 @@ use anyhow::Result;
 use std::ops::{Deref, DerefMut};
 use std::time::Instant;
 
+#[derive(Debug, Clone)]
+pub struct DetectionBuffer {
+    pub detections: Vec<Detection>,
+    pub timestamp: Instant,
+}
+
+impl DetectionBuffer {
+    pub fn new(len: usize) -> Self {
+        DetectionBuffer {
+            detections: vec![Detection::default(); len],
+            timestamp: Instant::now(),
+        }
+    }
+}
+
+impl Deref for DetectionBuffer {
+    type Target = Vec<Detection>;
+    fn deref(&self) -> &Self::Target {
+        &self.detections
+    }
+}
+
+impl DerefMut for DetectionBuffer {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.detections
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Detection {
+    pub x: f32,
+    pub y: f32,
+    pub w: f32,
+    pub h: f32,
+    pub conf: f32,
+    pub points: [[f32; 2]; 5],
+    pub cls: u32,
+}
+
 pub struct ImageBuffer {
     pub width: u32,
     pub height: u32,

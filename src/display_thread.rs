@@ -212,9 +212,9 @@ impl DisplayThread {
                         cv::calib3d::project_points_def(
                             &Vector::from_slice(&[
                                 Point3d::new(0.0, 0.0, 0.0),
-                                Point3d::new(10.0, 0.0, 0.0),
-                                Point3d::new(0.0, 10.0, 0.0),
-                                Point3d::new(0.0, 0.0, -10.0),
+                                Point3d::new(20.0, 0.0, 0.0),
+                                Point3d::new(0.0, 20.0, 0.0),
+                                Point3d::new(0.0, 0.0, -20.0),
                             ]),
                             &rvec,
                             &tvec,

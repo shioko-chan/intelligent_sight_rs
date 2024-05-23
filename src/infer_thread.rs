@@ -54,14 +54,11 @@ impl Processor for TrtThread {
             let mut cnt = 0;
             let mut start = std::time::Instant::now();
             while self.stop_sig.load(Ordering::Relaxed) == false {
-                let mut lock_input = match self.input_buffer.read() {
-                    Some(input) => input,
-                    None => {
-                        if self.stop_sig.load(Ordering::Relaxed) == false {
-                            error!("InferThread: Failed to get input");
-                        }
-                        break;
+                let Some(mut lock_input) = self.input_buffer.read() else {
+                    if self.stop_sig.load(Ordering::Relaxed) == false {
+                        error!("InferThread: Failed to get input");
                     }
+                    break;
                 };
                 #[cfg(feature = "visualize")]
                 {
