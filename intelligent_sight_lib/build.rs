@@ -36,10 +36,10 @@ fn main() {
 
     let result = Command::new("xmake")
         .status()
-        .expect("failed to build clibs");
+        .expect("failed to build clibs, please check installation of XMake");
 
     if !result.success() {
-        panic!("failed to build clibs");
+        panic!("failed to build clibs, please check installation of XMake");
     }
 
     let profile = env::var("PROFILE").unwrap();
