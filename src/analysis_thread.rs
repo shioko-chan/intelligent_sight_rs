@@ -1,6 +1,8 @@
 use crate::thread_trait::Processor;
 use anyhow::{anyhow, Result};
-use intelligent_sight_lib::{Reader, TensorBuffer, UnifiedTrait, Writer};
+use intelligent_sight_lib::{
+    Detection, DetectionBuffer, Reader, TensorBuffer, UnifiedTrait, Writer,
+};
 use log::error;
 use opencv::{self as cv, core::*};
 use std::{
@@ -12,7 +14,7 @@ use std::{
 };
 
 pub struct AnalysisThread {
-    input_buffer: Reader<TensorBuffer>,
+    input_buffer: Reader<DetectionBuffer>,
     output_buffer: Writer<Vec<f32>>,
     stop_sig: Arc<AtomicBool>,
 }
@@ -54,7 +56,7 @@ impl AnalysisThread {
         VecN::new(255.0, 0.0, 255.0, 255.0),
     ];
 
-    pub fn new(input_buffer: Reader<TensorBuffer>, stop_sig: Arc<AtomicBool>) -> Result<Self> {
+    pub fn new(input_buffer: Reader<DetectionBuffer>, stop_sig: Arc<AtomicBool>) -> Result<Self> {
         Ok(AnalysisThread {
             input_buffer,
             output_buffer: Writer::new(4, || Ok(vec![0.0; 100]))?,
@@ -80,17 +82,17 @@ impl Processor for AnalysisThread {
                     break;
                 };
 
-                let mut iter = lock_input.iter();
-                for _ in 0..lock_input.size()[0] {
-                    let x = iter.next().unwrap();
-                    let y = iter.next().unwrap();
-                    let w = iter.next().unwrap();
-                    let h = iter.next().unwrap();
-                    // println!("{} {} {} {}", x, y, w, h);
-                    let conf = iter.next().unwrap();
-                    let cls = iter.next().unwrap();
-                    // println!("{} {}", conf, cls);
-                    if *cls != 0.0 && *cls != 17.0 {
+                for Detection {
+                    x,
+                    y,
+                    w,
+                    h,
+                    conf,
+                    cls,
+                    points,
+                } in lock_input.iter()
+                {
+                    if *cls != 0 && *cls != 17 {
                         continue;
                     }
 
@@ -103,9 +105,7 @@ impl Processor for AnalysisThread {
                     };
 
                     let mut image_points = Vector::<Point2d>::with_capacity(5);
-                    for i in 0..5 {
-                        let x = iter.next().unwrap();
-                        let y = iter.next().unwrap();
+                    for (i, [x, y]) in points.iter().enumerate() {
                         if i != 2 {
                             image_points.push(Point2d::new(*x as f64, (y - 80.0) as f64));
                         }

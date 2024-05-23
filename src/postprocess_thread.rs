@@ -116,7 +116,7 @@ impl PostprocessThread {
         #[cfg(feature = "visualize")] detection_tx: mpsc::Sender<TensorBuffer>,
     ) -> Result<Self> {
         unsafe {
-            if let Some(config) = &CONFIG {
+            if let Some(Some(config)) = std::ptr::addr_of!(CONFIG).as_ref() {
                 postprocess_init(
                     config.max_detections,
                     config.confidence_threshold,
