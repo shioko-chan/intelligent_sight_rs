@@ -169,10 +169,10 @@ bool PostProcess::check_iou(float *box1, float *box2)
 // 16: 4(xywh) + 1(score) + 1(cls) + 10(kpnt)
 uint16_t PostProcess::post_process(float *input_buffer, float *output_buffer, uint16_t *num_detections)
 {
-    dim3 threads_pre_block(48, 2);
-    dim3 blocks(175);
+    dim3 threads_per_block(48, 2);
+    dim3 blocks((FEATURE_MAP_SIZE + 47) / 48);
     // (1, 32, FEATURE_MAP_SIZE)
-    transform_results<<<blocks, threads_pre_block>>>(input_buffer, this->transformed, FEATURE_MAP_SIZE);
+    transform_results<<<blocks, threads_per_block>>>(input_buffer, this->transformed, FEATURE_MAP_SIZE);
     // (1, FEATURE_MAP_SIZE, 16)
 
     check_status(cudaDeviceSynchronize());
