@@ -7,14 +7,14 @@ use std::mem;
 
 mod cuda_op_ffi {
     extern "C" {
-        #[cfg(any(target_os = "windows", target_arch = "aarch64"))]
+        // #[cfg(any(target_os = "windows", target_arch = "aarch64"))]
         pub fn cuda_malloc(size: u32, ptr: *mut *mut u8) -> u16;
         #[cfg(not(any(target_os = "windows", target_arch = "aarch64")))]
         pub fn cuda_malloc_managed(size: u32, ptr: *mut *mut u8) -> u16;
-        #[cfg(any(target_os = "windows", target_arch = "aarch64"))]
+        // #[cfg(any(target_os = "windows", target_arch = "aarch64"))]
         pub fn cuda_malloc_host(size: u32, ptr: *mut *mut u8) -> u16;
         pub fn cuda_free(ptr: *mut u8) -> u16;
-        #[cfg(any(target_os = "windows", target_arch = "aarch64"))]
+        // #[cfg(any(target_os = "windows", target_arch = "aarch64"))]
         pub fn cuda_free_host(ptr: *mut u8) -> u16;
         pub fn transfer_host_to_device(
             host_buffer: *const u8,
@@ -87,7 +87,7 @@ fn exec_and_check(mut f: impl FnMut() -> Result<u16>) -> Result<()> {
     }
 }
 
-#[cfg(any(target_os = "windows", target_arch = "aarch64"))]
+// #[cfg(any(target_os = "windows", target_arch = "aarch64"))]
 pub fn cuda_malloc<T>(size: usize) -> Result<*mut T>
 where
     T: Sized,
@@ -104,7 +104,7 @@ where
     .map(|_| ptr)
 }
 
-#[cfg(any(target_os = "windows", target_arch = "aarch64"))]
+// #[cfg(any(target_os = "windows", target_arch = "aarch64"))]
 pub fn cuda_malloc_host<T>(size: usize) -> Result<*mut T>
 where
     T: Sized,
@@ -142,7 +142,7 @@ pub fn cuda_free<T>(ptr: *mut T) -> Result<()> {
     exec_and_check(|| Ok(unsafe { cuda_op_ffi::cuda_free(ptr as *mut u8) }))
 }
 
-#[cfg(any(target_os = "windows", target_arch = "aarch64"))]
+// #[cfg(any(target_os = "windows", target_arch = "aarch64"))]
 pub fn cuda_free_host<T>(ptr: *mut T) -> Result<()> {
     exec_and_check(|| Ok(unsafe { cuda_op_ffi::cuda_free_host(ptr as *mut u8) }))
 }

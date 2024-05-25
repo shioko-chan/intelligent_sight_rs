@@ -119,7 +119,7 @@ impl DisplayThread {
                         }
                         cv::imgproc::circle(
                             &mut mat,
-                            cv::core::Point_::new(x.round() as i32, (y.round() - 80.0) as i32),
+                            cv::core::Point_::new(x.round() as i32, y.round() as i32),
                             5,
                             VecN::new(255.0, 255.0, 255.0, 255.0),
                             -1,
@@ -131,7 +131,7 @@ impl DisplayThread {
                             &mut mat,
                             Rect_::new(
                                 (x - w / 2.0).round() as i32,
-                                (y - 80.0 - h / 2.0).round() as i32,
+                                (y - h / 2.0).round() as i32,
                                 w.round() as i32,
                                 h.round() as i32,
                             ),
@@ -151,10 +151,7 @@ impl DisplayThread {
                         cv::imgproc::put_text_def(
                             &mut mat,
                             format!("{} {:.3}", cls, conf).as_str(),
-                            Point_::new(
-                                (x - w / 2.0).round() as i32,
-                                (y - 90.0 - h / 2.0).round() as i32,
-                            ),
+                            Point_::new((x - w / 2.0).round() as i32, (y - h / 2.0).round() as i32),
                             0,
                             0.5,
                             VecN::new(255.0, 255.0, 255.0, 255.0),
@@ -165,11 +162,11 @@ impl DisplayThread {
                             let x = iter.next().unwrap();
                             let y = iter.next().unwrap();
                             if i != 2 {
-                                image_points.push(Point2d::new(*x as f64, (y - 80.0) as f64));
+                                image_points.push(Point2d::new(*x as f64, *y as f64));
                             }
                             cv::imgproc::circle(
                                 &mut mat,
-                                cv::core::Point_::new(x.round() as i32, (y.round() - 80.0) as i32),
+                                cv::core::Point_::new(x.round() as i32, y.round() as i32),
                                 5,
                                 Self::COLORS[i],
                                 -1,

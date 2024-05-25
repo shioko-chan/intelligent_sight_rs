@@ -62,7 +62,7 @@ __global__ void rgbToTensor(uint8_t *input, float *output)
     {
         int idx_out = (y * 640 + x);
         int size_out = 640 * 480;
-        int idx_in = 3 * ((y - 80) * 640 + x);
+        int idx_in = 3 * idx_out;
 
         output[idx_out] = input[idx_in] / 255.0f;                    // R
         output[idx_out + size_out] = input[idx_in + 1] / 255.0f;     // G
@@ -70,7 +70,8 @@ __global__ void rgbToTensor(uint8_t *input, float *output)
     }
 }
 
-// assume that output is (640, 480), input is (640, 480), padding 80 pixels on top and bottom
+// assume that input is (640, 480, 3)
+// output is (3, 640, 480)
 // only normalize now
 uint16_t convert_rgb888_3dtensor(uint8_t *input_buffer, float *output_buffer, uint32_t width, uint32_t height)
 {
