@@ -16,7 +16,7 @@ pub use gpu_op::{
 #[cfg(not(any(target_os = "windows", target_arch = "aarch64")))]
 pub use gpu_op::cuda_malloc_managed;
 
-// #[cfg(any(target_os = "windows", target_arch = "aarch64"))]
+#[cfg(any(target_os = "windows", target_arch = "aarch64"))]
 pub use gpu_op::{cuda_free_host, cuda_malloc, cuda_malloc_host};
 
 pub use data_structures::{Detection, DetectionBuffer, ImageBuffer, TensorBuffer};

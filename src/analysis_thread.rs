@@ -48,6 +48,7 @@ impl AnalysisThread {
             0.0,
         ),
     ];
+
     #[allow(unused)]
     const COLORS: [VecN<f64, 4>; 5] = [
         VecN::new(0.0, 0.0, 255.0, 255.0),
@@ -97,9 +98,9 @@ impl Processor for AnalysisThread {
                     conf, cls, points, ..
                 } in lock_input.iter()
                 {
-                    if *cls != 0 && *cls != 17 {
-                        continue;
-                    }
+                    // if *cls != 0 && *cls != 17 {
+                    //     continue;
+                    // }
 
                     let mut image_points = Vector::<Point2d>::with_capacity(5);
                     for (i, [x, y]) in points.iter().enumerate() {

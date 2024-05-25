@@ -114,9 +114,9 @@ impl DisplayThread {
                         let conf = iter.next().unwrap();
                         let cls = iter.next().unwrap();
                         // println!("{} {}", conf, cls);
-                        if *cls != 0.0 && *cls != 17.0 {
-                            continue;
-                        }
+                        // if *cls != 0.0 && *cls != 17.0 {
+                        //     continue;
+                        // }
                         cv::imgproc::circle(
                             &mut mat,
                             cv::core::Point_::new(x.round() as i32, y.round() as i32),
