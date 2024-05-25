@@ -26,6 +26,7 @@ pub struct AppConfig {
     pub confidence_threshold: f32,
     pub iou_threshold: f32,
     pub feature_map_size: u16,
+    pub camera_exposure_time: u32,
 }
 
 static mut CONFIG: Option<AppConfig> = None;

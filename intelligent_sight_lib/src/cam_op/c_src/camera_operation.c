@@ -8,7 +8,7 @@ tSdkCameraDevInfo *CAMERA_LIST;
 CameraHandle *CAMERA_HANDLERS;
 tSdkCameraCapbility *CAPABILITY_LIST;
 
-uint8_t initialize_camera(uint8_t wanted_cam_number, uint32_t *image_width, uint32_t *image_height, uint8_t *already_initialized)
+uint8_t initialize_camera(uint8_t wanted_cam_number, uint32_t *image_width, uint32_t *image_height, uint8_t *already_initialized, uint32_t exposure_time)
 {
     CameraSdkStatus status;
 
@@ -58,11 +58,11 @@ uint8_t initialize_camera(uint8_t wanted_cam_number, uint32_t *image_width, uint
         // printf("Exposure time range: %f - %f\n", from_value, to_value);
         // printf("Current exposure line time: %f\n", exposure_line_time);
 
-        check_status_retry(CameraSetExposureTime(CAMERA_HANDLERS[i], 1000.0));
-        printf("SDK: Finish setting exposure time 4ms\n");
+        check_status_retry(CameraSetExposureTime(CAMERA_HANDLERS[i], (double)exposure_time));
 
-        // double exposure_time;
-        // check_status(CameraGetExposureTime(CAMERA_HANDLERS[i], &exposure_time));
+        double exposure_time_feedback;
+        check_status(CameraGetExposureTime(CAMERA_HANDLERS[i], &exposure_time_feedback));
+        printf("SDK: Finish setting exposure time %lf us\n", exposure_time_feedback);
         // printf("Current exposure time: %f\n", exposure_time);
 
         check_status_retry(CameraSetIspOutFormat(CAMERA_HANDLERS[i], CAMERA_MEDIA_TYPE_RGB8));
