@@ -103,6 +103,17 @@ fn main() {
         }
     };
 
+    let analysis_thread = match analysis_thread::AnalysisThread::new(
+        postprocess_thread.get_output_buffer(),
+        stop_sig.clone(),
+    ) {
+        Ok(analysis_thread) => analysis_thread,
+        Err(err) => {
+            error!("Main: Failed to initialize analysis thread: {}", err);
+            return;
+        }
+    };
+
     #[cfg(feature = "visualize")]
     let display_thread = display_thread::DisplayThread::new(rx_img, rx_det, stop_sig.clone());
 
@@ -116,6 +127,9 @@ fn main() {
 
     let postprocess_thread_handle = postprocess_thread.start_processor();
     info!("Main: Postprocess thread started");
+
+    let analysis_thread_handle = analysis_thread.start_processor();
+    info!("Main: Analysis thread started");
 
     #[cfg(feature = "visualize")]
     let display_thread_handle = {

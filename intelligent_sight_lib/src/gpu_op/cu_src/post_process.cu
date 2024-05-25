@@ -23,7 +23,7 @@ __global__ void transform_results(float *input_buffer, float *output_buffer, uin
             }
             for (int i = 22; i < 32; i++)
             {
-                output_buffer[x * 16 + i - 16] = input_buffer[i * FEATURE_MAP_SIZE + x];
+                output_buffer[x * 16 + (i - 16)] = input_buffer[i * FEATURE_MAP_SIZE + x];
             }
         }
         else if (y == 1)

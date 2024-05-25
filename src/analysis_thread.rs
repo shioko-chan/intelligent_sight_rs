@@ -48,6 +48,7 @@ impl AnalysisThread {
             0.0,
         ),
     ];
+    #[allow(unused)]
     const COLORS: [VecN<f64, 4>; 5] = [
         VecN::new(0.0, 0.0, 255.0, 255.0),
         VecN::new(0.0, 255.0, 0.0, 255.0),
@@ -74,6 +75,17 @@ impl Processor for AnalysisThread {
 
     fn start_processor(self) -> std::thread::JoinHandle<()> {
         thread::spawn(move || {
+            // 准备3D点（物体坐标系）
+            let object_points = Vector::from_slice(&Self::POWER_RUNE_POINTS);
+
+            // 定义相机内参矩阵
+            let camera_matrix =
+                Mat::from_slice_2d(&[[800.0, 0.0, 320.0], [0.0, 800.0, 240.0], [0.0, 0.0, 1.0]])
+                    .unwrap();
+
+            // 畸变系数（假设无畸变）
+            let dist_coeffs = Mat::zeros(4, 1, cv::core::CV_64F).unwrap();
+
             while self.stop_sig.load(Ordering::Relaxed) == false {
                 let Some(lock_input) = self.input_buffer.read() else {
                     if self.stop_sig.load(Ordering::Relaxed) == false {
@@ -81,28 +93,13 @@ impl Processor for AnalysisThread {
                     }
                     break;
                 };
-
                 for Detection {
-                    x,
-                    y,
-                    w,
-                    h,
-                    conf,
-                    cls,
-                    points,
+                    conf, cls, points, ..
                 } in lock_input.iter()
                 {
                     if *cls != 0 && *cls != 17 {
                         continue;
                     }
-
-                    let cls = match Self::CLASSES.get(*cls as usize) {
-                        Some(cls) => cls,
-                        None => {
-                            self.stop_sig.store(true, Ordering::Relaxed);
-                            return;
-                        }
-                    };
 
                     let mut image_points = Vector::<Point2d>::with_capacity(5);
                     for (i, [x, y]) in points.iter().enumerate() {
@@ -110,20 +107,6 @@ impl Processor for AnalysisThread {
                             image_points.push(Point2d::new(*x as f64, (y - 80.0) as f64));
                         }
                     }
-
-                    // 准备3D点（物体坐标系）
-                    let object_points = Vector::from_slice(&Self::POWER_RUNE_POINTS);
-
-                    // 定义相机内参矩阵
-                    let camera_matrix = Mat::from_slice_2d(&[
-                        [800.0, 0.0, 320.0],
-                        [0.0, 800.0, 240.0],
-                        [0.0, 0.0, 1.0],
-                    ])
-                    .unwrap();
-
-                    // 畸变系数（假设无畸变）
-                    let dist_coeffs = Mat::zeros(4, 1, cv::core::CV_64F).unwrap();
 
                     // 旋转向量和平移向量
                     let mut rvec = Mat::default();
@@ -139,29 +122,6 @@ impl Processor for AnalysisThread {
                         cv::calib3d::SOLVEPNP_ITERATIVE,
                     )
                     .unwrap();
-
-                    let mut image_points = Vector::<Point2d>::with_capacity(4);
-                    cv::calib3d::project_points_def(
-                        &Vector::from_slice(&[
-                            Point3d::new(0.0, 0.0, 0.0),
-                            Point3d::new(20.0, 0.0, 0.0),
-                            Point3d::new(0.0, 20.0, 0.0),
-                            Point3d::new(0.0, 0.0, -20.0),
-                        ]),
-                        &rvec,
-                        &tvec,
-                        &camera_matrix,
-                        &dist_coeffs,
-                        &mut image_points,
-                    )
-                    .unwrap();
-                    let origin = image_points.get(0).unwrap();
-                    let origin = Point2i::new(origin.x as i32, origin.y as i32);
-
-                    for i in 0..3 {
-                        let pnt = image_points.get(i + 1).unwrap();
-                        let pnt = Point2i::new(pnt.x as i32, pnt.y as i32);
-                    }
                 }
             }
 
