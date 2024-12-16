@@ -10,6 +10,17 @@ use std::{
     thread::{self, JoinHandle},
 };
 
+macro_rules! generate_points {
+    ($width:expr, $height:expr) => {
+        [
+            Point3d::new($width / 2.0, -$height / 2.0, 0.0),
+            Point3d::new($width / 2.0, $height / 2.0, 0.0),
+            Point3d::new(-$width / 2.0, $height / 2.0, 0.0),
+            Point3d::new(-$width / 2.0, -$height / 2.0, 0.0),
+        ]
+    };
+}
+
 pub struct DisplayThread {
     image_rx: mpsc::Receiver<ImageBuffer>,
     detection_rx: mpsc::Receiver<TensorBuffer>,
@@ -17,34 +28,25 @@ pub struct DisplayThread {
 }
 
 impl DisplayThread {
-    const POWER_RUNE_WIDTH: f64 = 32.0;
-    const POWER_RUNE_HEIGHT: f64 = 10.26;
     const CLASSES: [&'static str; 18] = [
         "PR", "B1", "B2", "B3", "B4", "B5", "BG", "BO", "BB", "R1", "R2", "R3", "R4", "R5", "RG",
         "RO", "RB", "PB",
     ];
-    const POWER_RUNE_POINTS: [Point3_<f64>; 4] = [
-        Point3d::new(
-            Self::POWER_RUNE_WIDTH / 2.0,
-            -Self::POWER_RUNE_HEIGHT / 2.0,
-            0.0,
-        ),
-        Point3d::new(
-            Self::POWER_RUNE_WIDTH / 2.0,
-            Self::POWER_RUNE_HEIGHT / 2.0,
-            0.0,
-        ),
-        Point3d::new(
-            -Self::POWER_RUNE_WIDTH / 2.0,
-            Self::POWER_RUNE_HEIGHT / 2.0,
-            0.0,
-        ),
-        Point3d::new(
-            -Self::POWER_RUNE_WIDTH / 2.0,
-            -Self::POWER_RUNE_HEIGHT / 2.0,
-            0.0,
-        ),
-    ];
+
+    const POWER_RUNE_WIDTH: f64 = 320.0;
+    const POWER_RUNE_HEIGHT: f64 = 102.6;
+    const POWER_RUNE_POINTS: [Point3_<f64>; 4] =
+        generate_points!(Self::POWER_RUNE_WIDTH, Self::POWER_RUNE_HEIGHT);
+
+    const ARMOR_WIDTH: f64 = 135.0; // 1.08
+    const ARMOR_HEIGHT: f64 = 55.0;
+    const ARMOR_POINTS: [Point3_<f64>; 4] = generate_points!(Self::ARMOR_WIDTH, Self::ARMOR_HEIGHT);
+
+    const LARGE_ARMOR_WIDTH: f64 = 230.0; // 1.81
+    const LARGE_ARMOR_HEIGHT: f64 = 55.0;
+    const LARGE_ARMOR_POINTS: [Point3_<f64>; 4] =
+        generate_points!(Self::LARGE_ARMOR_WIDTH, Self::LARGE_ARMOR_HEIGHT);
+
     const COLORS: [VecN<f64, 4>; 5] = [
         VecN::new(0.0, 0.0, 255.0, 255.0),
         VecN::new(0.0, 255.0, 0.0, 255.0),
@@ -67,6 +69,10 @@ impl DisplayThread {
 
     pub fn run(self) -> JoinHandle<()> {
         thread::spawn(move || {
+            let power_rune_points = Vector::from_slice(&Self::POWER_RUNE_POINTS);
+            let armor_points = Vector::from_slice(&Self::ARMOR_POINTS);
+            let large_armor_points = Vector::from_slice(&Self::LARGE_ARMOR_POINTS);
+
             while self.stop_sig.load(Ordering::Relaxed) == false {
                 if let Ok(detection) = self.detection_rx.recv() {
                     let get_image = || loop {
@@ -112,14 +118,65 @@ impl DisplayThread {
                         let h = iter.next().unwrap();
                         // println!("{} {} {} {}", x, y, w, h);
                         let conf = iter.next().unwrap();
-                        let cls = iter.next().unwrap();
+                        let cls = *iter.next().unwrap() as usize;
                         // println!("{} {}", conf, cls);
-                        if *cls != 0.0 && *cls != 17.0 {
-                            continue;
+
+                        let mut image_points = Vector::<Point2d>::with_capacity(5);
+                        match cls {
+                            0 | 17 => {
+                                for i in 0..5 {
+                                    let x = iter.next().unwrap();
+                                    let y = iter.next().unwrap();
+                                    if i != 2 {
+                                        image_points.push(Point2d::new(*x as f64, *y as f64));
+                                    }
+                                    cv::imgproc::circle(
+                                        &mut mat,
+                                        cv::core::Point_::new(x.round() as i32, y.round() as i32),
+                                        5,
+                                        Self::COLORS[i],
+                                        -1,
+                                        0,
+                                        0,
+                                    )
+                                    .unwrap();
+                                }
+                            },
+                            _ => {
+                                for i in 0..5 {
+                                    let x = iter.next().unwrap();
+                                    let y = iter.next().unwrap();
+                                    if i != 4 {
+                                        image_points.push(Point2d::new(*x as f64, *y as f64));
+                                    }
+                                    cv::imgproc::circle(
+                                        &mut mat,
+                                        cv::core::Point_::new(x.round() as i32, y.round() as i32),
+                                        5,
+                                        Self::COLORS[i],
+                                        -1,
+                                        0,
+                                        0,
+                                    )
+                                    .unwrap();
+                                }
+                            }
                         }
+
+                        let object_points = match cls {
+                            0 | 17 => &power_rune_points,
+                            1 | 9 => &large_armor_points,
+                            _ => {
+                                if w / h > 1.5 {
+                                    &large_armor_points
+                                } else {
+                                    &armor_points
+                                }
+                            }
+                        };
                         cv::imgproc::circle(
                             &mut mat,
-                            cv::core::Point_::new(x.round() as i32, (y.round() - 80.0) as i32),
+                            cv::core::Point_::new(x.round() as i32, y.round() as i32),
                             5,
                             VecN::new(255.0, 255.0, 255.0, 255.0),
                             -1,
@@ -131,7 +188,7 @@ impl DisplayThread {
                             &mut mat,
                             Rect_::new(
                                 (x - w / 2.0).round() as i32,
-                                (y - 80.0 - h / 2.0).round() as i32,
+                                (y - h / 2.0).round() as i32,
                                 w.round() as i32,
                                 h.round() as i32,
                             ),
@@ -141,7 +198,7 @@ impl DisplayThread {
                             0,
                         )
                         .unwrap();
-                        let cls = match Self::CLASSES.get(*cls as usize) {
+                        let cls = match Self::CLASSES.get(cls) {
                             Some(cls) => cls,
                             None => {
                                 self.stop_sig.store(true, Ordering::Relaxed);
@@ -151,36 +208,12 @@ impl DisplayThread {
                         cv::imgproc::put_text_def(
                             &mut mat,
                             format!("{} {:.3}", cls, conf).as_str(),
-                            Point_::new(
-                                (x - w / 2.0).round() as i32,
-                                (y - 90.0 - h / 2.0).round() as i32,
-                            ),
+                            Point_::new((x - w / 2.0).round() as i32, (y - h / 2.0).round() as i32),
                             0,
                             0.5,
                             VecN::new(255.0, 255.0, 255.0, 255.0),
                         )
                         .unwrap();
-                        let mut image_points = Vector::<Point2d>::with_capacity(5);
-                        for i in 0..5 {
-                            let x = iter.next().unwrap();
-                            let y = iter.next().unwrap();
-                            if i != 2 {
-                                image_points.push(Point2d::new(*x as f64, (y - 80.0) as f64));
-                            }
-                            cv::imgproc::circle(
-                                &mut mat,
-                                cv::core::Point_::new(x.round() as i32, (y.round() - 80.0) as i32),
-                                5,
-                                Self::COLORS[i],
-                                -1,
-                                0,
-                                0,
-                            )
-                            .unwrap();
-                        }
-
-                        // 准备3D点（物体坐标系）
-                        let object_points = Vector::from_slice(&Self::POWER_RUNE_POINTS);
 
                         // 定义相机内参矩阵
                         let camera_matrix = Mat::from_slice_2d(&[
@@ -197,7 +230,7 @@ impl DisplayThread {
                         let mut rvec = Mat::default();
                         let mut tvec = Mat::default();
                         cv::calib3d::solve_pnp(
-                            &object_points,
+                            object_points,
                             &image_points,
                             &camera_matrix,
                             &dist_coeffs,
@@ -212,9 +245,9 @@ impl DisplayThread {
                         cv::calib3d::project_points_def(
                             &Vector::from_slice(&[
                                 Point3d::new(0.0, 0.0, 0.0),
-                                Point3d::new(20.0, 0.0, 0.0),
-                                Point3d::new(0.0, 20.0, 0.0),
-                                Point3d::new(0.0, 0.0, -20.0),
+                                Point3d::new(200.0, 0.0, 0.0),
+                                Point3d::new(0.0, 200.0, 0.0),
+                                Point3d::new(0.0, 0.0, 200.0),
                             ]),
                             &rvec,
                             &tvec,

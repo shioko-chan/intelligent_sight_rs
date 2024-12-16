@@ -18,6 +18,7 @@ mod cam_op_ffi {
             image_width: *mut u32,
             image_height: *mut u32,
             already_initialized: *mut u8,
+            exposure_time: u32,
         ) -> u8;
         pub fn get_image(
             camera_index: u8,
@@ -34,6 +35,7 @@ pub fn initialize_camera(
     wanted_cam_number: u8,
     buffer_width: &mut Vec<u32>,
     buffer_height: &mut Vec<u32>,
+    exposure_time: u32,
 ) -> Result<()> {
     let mut already_initialized: u8 = 0;
     match unsafe {
@@ -42,6 +44,7 @@ pub fn initialize_camera(
             buffer_width.as_mut_ptr(),
             buffer_height.as_mut_ptr(),
             &mut already_initialized as *mut u8,
+            exposure_time,
         )
     } {
         0 => Ok(()),
@@ -103,7 +106,7 @@ mod tests {
         let mut buffer_width = vec![0u32; 1];
         let mut buffer_height = vec![0u32; 1];
 
-        if let Err(err) = initialize_camera(1, &mut buffer_width, &mut buffer_height) {
+        if let Err(err) = initialize_camera(1, &mut buffer_width, &mut buffer_height, 1000) {
             panic!("initialize_camera failed err: {}", err);
         }
 

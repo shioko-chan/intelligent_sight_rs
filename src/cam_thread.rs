@@ -1,4 +1,4 @@
-use crate::thread_trait::Processor;
+use crate::{thread_trait::Processor, CONFIG};
 use anyhow::{anyhow, Result};
 
 use intelligent_sight_lib::{ImageBuffer, Reader, Writer};
@@ -28,19 +28,19 @@ impl CamThread {
         {
             let mut buffer_width = vec![0u32; 1];
             let mut buffer_height = vec![0u32; 1];
-            let mut initialize_retry = 0;
-
-            while let Err(err) = initialize_camera(1, &mut buffer_width, &mut buffer_height) {
-                error!(
-                    "CamThread: Failed to initialize camera with err: {}, retrying...",
-                    err
-                );
-                initialize_retry += 1;
-                if initialize_retry > 10 {
-                    error!("CamThread: Failed to initialize camera after 10 retries, exiting...");
-                    return Err(anyhow!("CamThread: Failed to initialize camera {}", err));
+            unsafe {
+                if let Some(Some(config)) = std::ptr::addr_of!(CONFIG).as_ref() {
+                    initialize_camera(
+                        1,
+                        &mut buffer_width,
+                        &mut buffer_height,
+                        config.camera_exposure_time,
+                    )?
+                } else {
+                    initialize_camera(1, &mut buffer_width, &mut buffer_height, 4000)?
                 }
-            }
+            };
+
             info!(
                 "CamThread: Camera initialized, width: {}, height: {}",
                 buffer_width[0], buffer_height[0]

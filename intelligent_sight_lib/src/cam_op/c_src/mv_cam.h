@@ -28,7 +28,7 @@
         int ret_status = (fun);                  \
         if (ret_status != CAMERA_STATUS_SUCCESS) \
         {                                        \
-            return (uint8_t)-ret_status;         \
+            return (uint8_t) - ret_status;       \
         }                                        \
     } while (0)
 
@@ -47,7 +47,7 @@
         }                                            \
         if (i == 10)                                 \
         {                                            \
-            return (uint8_t)-ret_status;             \
+            return (uint8_t) - ret_status;           \
         }                                            \
     } while (0)
 
@@ -55,7 +55,8 @@ uint8_t
 initialize_camera(uint8_t wanted_cam_number,
                   uint32_t *image_width,
                   uint32_t *image_height,
-                  uint8_t *already_initialized);
+                  uint8_t *already_initialized,
+                  uint32_t exposure_time);
 
 uint8_t
 get_image(uint8_t camera_index,

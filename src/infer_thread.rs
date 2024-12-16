@@ -1,4 +1,5 @@
 use crate::thread_trait::Processor;
+use crate::CONFIG;
 use anyhow::Result;
 use intelligent_sight_lib::{
     convert_rgb888_3dtensor, create_context, create_engine, infer, release_resources, set_input,
@@ -122,10 +123,20 @@ impl TrtThread {
     ) -> Result<Self> {
         create_engine("model.trt", "images", "output0", 640, 480)?;
 
-        info!("InferThread: output buffer size: {:?}", vec![1, 32, 6300]);
+        let feature_map_size = unsafe {
+            if let Some(Some(config)) = std::ptr::addr_of!(CONFIG).as_ref() {
+                config.feature_map_size as usize
+            } else {
+                6300
+            }
+        };
+        info!(
+            "InferThread: output buffer size: {:?}",
+            vec![1, 5, feature_map_size]
+        );
         Ok(Self {
             input_buffer,
-            output_buffer: Writer::new(4, || TensorBuffer::new(vec![1, 32, 6300]))?,
+            output_buffer: Writer::new(4, || TensorBuffer::new(vec![1, 5, feature_map_size]))?,
             stop_sig,
             #[cfg(feature = "visualize")]
             image_tx,

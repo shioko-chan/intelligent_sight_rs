@@ -7,7 +7,7 @@ fn cam_bench(c: &mut Criterion) {
     let mut buffer_width = vec![0u32; 1];
     let mut buffer_height = vec![0u32; 1];
 
-    if let Err(err) = initialize_camera(1, &mut buffer_width, &mut buffer_height) {
+    if let Err(err) = initialize_camera(1, &mut buffer_width, &mut buffer_height, 1000) {
         panic!(
             "CamThread: Failed to initialize camera with err: {}, retrying...",
             err
